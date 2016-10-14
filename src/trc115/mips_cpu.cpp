@@ -22,7 +22,7 @@ mips_error mips_cpu_reset(mips_cpu_h state){
 
   state->pc = 0;
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
 
 mips_error mips_cpu_get_register(
@@ -34,7 +34,7 @@ mips_error mips_cpu_get_register(
 
   *value = state->registers[index];
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
 
 mips_error mips_cpu_set_register(mips_cpu_h state,
@@ -45,21 +45,21 @@ mips_error mips_cpu_set_register(mips_cpu_h state,
 
   state->registers[index] = value;
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
 
 mips_error mips_cpu_set_pc(mips_cpu_h state, uint32_t pc){
 
   state->pc = pc;
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
 
 mips_error mips_cpu_get_pc(mips_cpu_h state, uint32_t *pc){
 
   *pc = state->pc;
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
 
 void mips_cpu_free(mips_cpu_h state){
@@ -77,12 +77,12 @@ mips_error mips_cpu_set_debug_level(
   state->debugLevel = level;
   state->debugDest = dest;
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
 
 mips_error mips_cpu_step(mips_cpu_h state){
   // This is where the fun happens!!
   state = state;
 
-  return state->externalErrorStatus;
+  return mips_Success;
 }
