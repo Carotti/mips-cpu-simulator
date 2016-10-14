@@ -135,5 +135,13 @@ mips_error mips_cpu_step(mips_cpu_h state){
     return attemptRead;
   }
 
+  uint32_t instructionComp =
+    uint32_t(instruction[0] << 24) +
+    uint32_t(instruction[1] << 16) +
+    uint32_t(instruction[2] << 8) +
+    uint32_t(instruction[3]);
+
+  mips_cpu_set_register(state, 0, instructionComp);
+
   return mips_Success;
 }
