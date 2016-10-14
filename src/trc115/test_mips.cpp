@@ -59,6 +59,9 @@ int main(){
 
   mips_test_end_test(testID, 1, "Test to see if tests work..?");
 
+  mips_cpu_free(testCPU);
+  testCPU = NULL;
+
   mips_test_end_suite();
 
   return 0;

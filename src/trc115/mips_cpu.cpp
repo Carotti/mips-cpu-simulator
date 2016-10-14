@@ -95,7 +95,6 @@ mips_error mips_cpu_get_pc(mips_cpu_h state, uint32_t *pc){
 }
 
 void mips_cpu_free(mips_cpu_h state){
-
     // Memory pointed to is only deallocated if not null so it is not
     // necessary to check whether or not state is set to null
     delete state;
