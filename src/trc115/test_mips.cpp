@@ -41,6 +41,18 @@ int main(){
 
   int testID = mips_test_begin_test("<internal>");
 
+  mips_mem_h testMem = mips_mem_create_ram(4096);
+  mips_cpu_h testCPU = mips_cpu_create(testMem);
+
+  uint8_t data[4];
+  data[0] = 10;
+  //data[1] = 20;
+  //data[2] = 30;
+  //data[3] = 40;
+
+  mips_mem_write(testMem, 0, 4, data);
+  mips_cpu_step(testCPU);
+
   mips_test_end_test(testID, 1, "Test to see if tests work..?");
 
   mips_test_end_suite();

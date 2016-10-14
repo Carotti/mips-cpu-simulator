@@ -31,7 +31,7 @@ mips_error mips_cpu_reset(mips_cpu_h state){
     return mips_ErrorInvalidHandle;
   }
 
-  for (unsigned int i = 0; i < NUMREGISTERS; i++){
+  for (unsigned i = 0; i < NUMREGISTERS; i++){
     state->registers[i] = 0;
   }
 
@@ -58,7 +58,8 @@ mips_error mips_cpu_get_register(
   return mips_Success;
 }
 
-mips_error mips_cpu_set_register(mips_cpu_h state,
+mips_error mips_cpu_set_register(
+  mips_cpu_h state,
   unsigned index,
   uint32_t value)
 {
@@ -95,7 +96,7 @@ mips_error mips_cpu_get_pc(mips_cpu_h state, uint32_t *pc){
 
 void mips_cpu_free(mips_cpu_h state){
 
-    // Memory pointed to is only deallocated if state is not null so it is not
+    // Memory pointed to is only deallocated if not null so it is not
     // necessary to check whether or not state is set to null
     delete state;
 }
@@ -119,7 +120,20 @@ mips_error mips_cpu_step(mips_cpu_h state){
     return mips_ErrorInvalidHandle;
   }
   // This is where the fun happens!!
-  state = state;
+
+  // Instructions are 4 bytes long
+  uint8_t instruction[4];
+
+  // First step is to retrieve the instruction from memory at program counter
+  mips_error attemptRead = mips_mem_read(
+    state->mem,
+    state->pc,
+    4,
+    instruction);
+  // If mips_mem_read declares an error, it is returned
+  if(attemptRead != mips_Success){
+    return attemptRead;
+  }
 
   return mips_Success;
 }
