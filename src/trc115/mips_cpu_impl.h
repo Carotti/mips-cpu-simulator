@@ -11,11 +11,7 @@ struct mips_cpu_impl{
     mem(memIn),
     debugLevel(0),
     // Default to having no debug destination, as debugLevel defaults to 0
-    debugDest(NULL)
-  {
-    // Reset the CPU on initialisation to ensure all regs set to 0
-    mips_cpu_reset(this);
-  }
+    debugDest(NULL){}
 
   uint32_t pc;
 
