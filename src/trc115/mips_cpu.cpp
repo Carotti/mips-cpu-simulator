@@ -34,7 +34,7 @@ mips_error mips_cpu_reset(mips_cpu_h state){
     return mips_ErrorInvalidHandle;
   }
 
-  for (unsigned i = 0; i < NUMREGISTERS; i++){
+  for (unsigned i = 0; i < 32; i++){
     state->registers[i] = 0;
   }
 
@@ -52,7 +52,7 @@ mips_error mips_cpu_get_register(
     return mips_ErrorInvalidHandle;
   }
 
-  if(index >= NUMREGISTERS){
+  if(index >= 32){
     return mips_ErrorInvalidArgument;
   }
 
@@ -70,7 +70,7 @@ mips_error mips_cpu_set_register(
     return mips_ErrorInvalidHandle;
   }
 
-  if(index >= NUMREGISTERS){
+  if(index >= 32){
     return mips_ErrorInvalidArgument;
   }
 
@@ -139,6 +139,7 @@ mips_error mips_cpu_step(mips_cpu_h state){
   }
 
   uint8_t opCode = instructionData[0] >> 2;
+
   // u for undefined (or unimplemented) instruction
   char type = 'u';
 
@@ -146,12 +147,9 @@ mips_error mips_cpu_step(mips_cpu_h state){
   for (unsigned i = 0; i < unsigned(state->instruction_set.size()); i++){
     // Loop through the instruction set
     if (state->instruction_set[i].opCode == opCode){
+      // type of the opCode is found so the instruction is valid
       type = state->instruction_set[i].type;
     }
-  }
-
-  if (type == 'u'){
-    return mips_ExceptionInvalidInstruction;
   }
 
   instruction_impl nextInstruction = instruction_impl(
@@ -162,6 +160,48 @@ mips_error mips_cpu_step(mips_cpu_h state){
 
   cout << bitset<32>(nextInstruction.data) << endl;
   cout << unsigned(nextInstruction.opCode) << endl;
+
+  switch(nextInstruction.type){
+    case 'r':
+      exec_r(state, nextInstruction);
+      break;
+    case 'j':
+      exec_j(state, nextInstruction);
+      break;
+    case 'i':
+      exec_i(state, nextInstruction);
+      break;
+    case 'u':
+      // Instruction is invalid, return with error
+      return mips_ExceptionInvalidInstruction;
+      break;
+  }
+
+  return mips_Success;
+}
+
+mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
+  uint8_t source1 = uint8_t((instruction.data & 0x03E00000) >> 21);
+  uint8_t source2 = uint8_t((instruction.data & 0x001F0000) >> 16);
+  uint8_t dest = uint8_t((instruction.data & 0x0000F800) >> 11);
+  uint8_t shift = uint8_t((instruction.data & 0x000007C0) >> 11);
+  uint8_t function = uint8_t((instruction.data & 0x0000003F) >> 11);
+
+  // result is used to store what the destination register will be set to
+  uint32_t result;
+
+
+  mips_cpu_set_register(state, dest, result);
+
+  return mips_Success;
+}
+
+mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
+
+  return mips_Success;
+}
+
+mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
 
   return mips_Success;
 }

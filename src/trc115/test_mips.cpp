@@ -45,7 +45,7 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
-  uint8_t data[4] = {0b01000000, 0b00000000, 0b00000000, 0b00000000};
+  uint8_t data[4] = {0b00000000, 0b00000000, 0b00000000, 0b00000000};
 
   mips_mem_write(testMem, 0, 4, data);
   cout << mips_cpu_step(testCPU) << endl;
