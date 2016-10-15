@@ -12,21 +12,43 @@ using namespace std;
 struct instruction_impl{
   char type;
   uint8_t opCode;
+
   // Only used for R type insructions
-  uint8_t rFunction;
+  uint8_t function;
+  uint8_t source2;
+  uint8_t shift;
+
+  // Used for R and I type instructions
+  uint8_t source1;
+  uint8_t dest;
+
+  // Only used for I type instructions
+  uint16_t immediate;
+
+  // Only used for J type instructions
+  uint32_t address;
+
+  // Only used for an 'actual' function rather than instruction set member
+  uint32_t data;
 
   // Constructor for instruction_impl without rFunction defined
   instruction_impl(char typeIn, uint8_t opCodeIn):
     type(typeIn),
     opCode(opCodeIn),
     // Define rFunction to 63 (unused) to prevent accidentally using it
-    rFunction(63){}
+    function(63){}
 
-  // Constructor where rFunction is defined
-    instruction_impl(char typeIn, uint8_t opCodeIn, uint8_t rFunctionIn):
-      type(typeIn),
-      opCode(opCodeIn),
-      rFunction(rFunctionIn){}
+  // Constructor where function is defined
+  instruction_impl(char typeIn, uint8_t opCodeIn, uint8_t functionIn):
+    type(typeIn),
+    opCode(opCodeIn),
+    function(functionIn){}
+
+  // Constructor where there is actual raw data - data first allows overload
+  instruction_impl(uint32_t dataIn, char typeIn, uint8_t opCodeIn):
+    type(typeIn),
+    opCode(opCodeIn),
+    data(dataIn){}
 };
 
 struct mips_cpu_impl{
@@ -38,7 +60,9 @@ struct mips_cpu_impl{
     // Default to having no debug destination, as debugLevel defaults to 0
     debugDest(NULL){
       // Define the instruction set for the CPU
-      // Commented out instructions not yet implemented
+      // * denotes an instruction not in the specification
+
+      // r type instructions share opcode 0 and have their own function
       instruction_set.push_back(instruction_impl('r', 0, 0)); // sll
 
       instruction_set.push_back(instruction_impl('r', 0, 2)); // srl
@@ -50,8 +74,8 @@ struct mips_cpu_impl{
       instruction_set.push_back(instruction_impl('r', 0, 8)); // jr
       instruction_set.push_back(instruction_impl('r', 0, 9)); // jalr
 
-      instruction_set.push_back(instruction_impl('r', 0, 12)); // syscall
-      instruction_set.push_back(instruction_impl('r', 0, 13)); // break
+      instruction_set.push_back(instruction_impl('r', 0, 12)); // syscall*
+      instruction_set.push_back(instruction_impl('r', 0, 13)); // break*
 
       instruction_set.push_back(instruction_impl('r', 0, 16)); // mfhi
       instruction_set.push_back(instruction_impl('r', 0, 17)); // mthi
@@ -70,43 +94,44 @@ struct mips_cpu_impl{
       instruction_set.push_back(instruction_impl('r', 0, 36)); // and
       instruction_set.push_back(instruction_impl('r', 0, 37)); // or
       instruction_set.push_back(instruction_impl('r', 0, 38)); // xor
-      instruction_set.push_back(instruction_impl('r', 0, 39)); // nor
+      instruction_set.push_back(instruction_impl('r', 0, 39)); // nor*
 
       instruction_set.push_back(instruction_impl('r', 0, 42)); // slt
       instruction_set.push_back(instruction_impl('r', 0, 43)); // sltu
 
-
-
-
+      // bltz, bgez, bltzal and bgezal share opcode 1
+      // bltz has rt = 0
+      // bgez has rt = 1
+      // bltzal has rt = 16
+      // bgezal has rt = 17
+      instruction_set.push_back(instruction_impl('i', 1));
+      instruction_set.push_back(instruction_impl('j', 2)); // j
+      instruction_set.push_back(instruction_impl('j', 3)); // jal
+      instruction_set.push_back(instruction_impl('i', 4)); // beq
+      instruction_set.push_back(instruction_impl('i', 5)); // bne
+      instruction_set.push_back(instruction_impl('i', 6)); // blez (dest = 0)
+      instruction_set.push_back(instruction_impl('i', 7)); // bgtz (dest = 0)
       instruction_set.push_back(instruction_impl('i', 8)); // addi
       instruction_set.push_back(instruction_impl('i', 9)); // addiu
-      instruction_set.push_back(instruction_impl('i', 12)); // andi
-      instruction_set.push_back(instruction_impl('i', 4)); // beq
-
-      // bgez and bltz share this opcode
-      // bgez has dest = 1
-      // bltz has dest = 0
-      instruction_set.push_back(instruction_impl('i', 1));
-
-      instruction_set.push_back(instruction_impl('i', 7)); // bgtz (dest = 0)
-      instruction_set.push_back(instruction_impl('i', 6)); // blez (dest = 0)
-
-      instruction_set.push_back(instruction_impl('i', 5)); // bne
-      instruction_set.push_back(instruction_impl('i', 32)); // lb
-      instruction_set.push_back(instruction_impl('i', 36)); // lbu
-      instruction_set.push_back(instruction_impl('i', 33)); // lh
-      instruction_set.push_back(instruction_impl('i', 37)); // bne
-      instruction_set.push_back(instruction_impl('i', 15)); // lui
-      instruction_set.push_back(instruction_impl('i', 49)); // lwc1
-      instruction_set.push_back(instruction_impl('i', 13)); // ori
-      instruction_set.push_back(instruction_impl('i', 40)); // sb
       instruction_set.push_back(instruction_impl('i', 10)); // slti
       instruction_set.push_back(instruction_impl('i', 11)); // sltiu
-      instruction_set.push_back(instruction_impl('i', 41)); // sh
-      instruction_set.push_back(instruction_impl('i', 43)); // sw
-      instruction_set.push_back(instruction_impl('i', 57)); // swc1
+      instruction_set.push_back(instruction_impl('i', 12)); // andi
+      instruction_set.push_back(instruction_impl('i', 13)); // ori
       instruction_set.push_back(instruction_impl('i', 14)); // xori
+      instruction_set.push_back(instruction_impl('i', 15)); // lui
 
+      instruction_set.push_back(instruction_impl('i', 32)); // lb
+      instruction_set.push_back(instruction_impl('i', 33)); // lh
+      instruction_set.push_back(instruction_impl('i', 34)); // lwl
+      instruction_set.push_back(instruction_impl('i', 35)); // lw
+      instruction_set.push_back(instruction_impl('i', 36)); // lbu
+      instruction_set.push_back(instruction_impl('i', 37)); // lhu
+      instruction_set.push_back(instruction_impl('i', 38)); // lwr
+
+      instruction_set.push_back(instruction_impl('i', 40)); // sb
+      instruction_set.push_back(instruction_impl('i', 41)); // sh
+      instruction_set.push_back(instruction_impl('i', 42)); // swl*
+      instruction_set.push_back(instruction_impl('i', 43)); // sw
     }
 
   uint32_t pc;
@@ -120,5 +145,4 @@ struct mips_cpu_impl{
   FILE* debugDest;
 
   vector<instruction_impl> instruction_set;
-
 };

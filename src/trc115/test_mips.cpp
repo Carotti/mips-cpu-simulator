@@ -45,18 +45,10 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
-  uint8_t data[4];
-  data[0] = 10;
-  data[1] = 20;
-  data[2] = 30;
-  data[3] = 40;
+  uint8_t data[4] = {0b01000000, 0b00000000, 0b00000000, 0b00000000};
 
   mips_mem_write(testMem, 0, 4, data);
-  mips_cpu_step(testCPU);
-
-  uint32_t value;
-  mips_cpu_get_register(testCPU, 0, &value);
-  cout << std::bitset<32>(value) << endl;
+  cout << mips_cpu_step(testCPU) << endl;
 
   mips_test_end_test(testID, 1, "Test to see if tests work..?");
 

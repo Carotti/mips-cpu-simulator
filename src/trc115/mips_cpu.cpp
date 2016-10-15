@@ -1,5 +1,8 @@
 #include"mips_cpu_impl.h"
 
+#include <iostream>
+#include <bitset>
+
 // Wherever a handle is passed to a function, it is required to check whether
 // the handle is valid otherwise segmentation errors occur (!!)
 
@@ -121,33 +124,44 @@ mips_error mips_cpu_step(mips_cpu_h state){
   // This is where the fun happens!!
 
   // Instructions are 4 bytes long
-  uint8_t instruction[4];
+  uint8_t instructionData[4];
 
   // First step is to retrieve the instruction from memory at program counter
   mips_error attemptRead = mips_mem_read(
     state->mem,
     state->pc,
     4,
-    instruction);
+    instructionData);
 
   // If mips_mem_read declares an error, the error is returned
   if(attemptRead != mips_Success){
     return attemptRead;
   }
 
-  uint8_t opCode = instruction[0] >> 2;
+  uint8_t opCode = instructionData[0] >> 2;
+  // u for undefined (or unimplemented) instruction
+  char type = 'u';
 
-  // Determine whether the instruction is R, I or J type
-  if(opCode == 0){
-  // R type instruction
+  // Determine whether the instruction is R, I or J type or undefined
+  for (unsigned i = 0; i < unsigned(state->instruction_set.size()); i++){
+    // Loop through the instruction set
+    if (state->instruction_set[i].opCode == opCode){
+      type = state->instruction_set[i].type;
+    }
+  }
 
-} else if((opCode >= 2) && (opCode <= 3)) {
-  // J type instruction
+  if (type == 'u'){
+    return mips_ExceptionInvalidInstruction;
+  }
 
-} else {
-  // Assume I type instruction (may also be invalid op code)
+  instruction_impl nextInstruction = instruction_impl(
+    uint32_t((instructionData[0] << 24)|(instructionData[1] << 16)|
+      (instructionData[2] << 8)|(instructionData[3])),
+    type,
+    opCode);
 
-}
+  cout << bitset<32>(nextInstruction.data) << endl;
+  cout << unsigned(nextInstruction.opCode) << endl;
 
   return mips_Success;
 }
