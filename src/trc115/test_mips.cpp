@@ -1,6 +1,7 @@
 #include "../shared/mips.h"
 
 #include <iostream>
+#include <bitset>
 
 using namespace std;
 
@@ -55,7 +56,7 @@ int main(){
 
   uint32_t value;
   mips_cpu_get_register(testCPU, 0, &value);
-  cout << value << endl;
+  cout << std::bitset<32>(value) << endl;
 
   mips_test_end_test(testID, 1, "Test to see if tests work..?");
 

@@ -129,18 +129,25 @@ mips_error mips_cpu_step(mips_cpu_h state){
     state->pc,
     4,
     instruction);
-  // If mips_mem_read declares an error, it is returned
+
+  // If mips_mem_read declares an error, the error is returned
   if(attemptRead != mips_Success){
     return attemptRead;
   }
 
-  uint32_t instructionComp =
-    uint32_t(instruction[0] << 24) +
-    uint32_t(instruction[1] << 16) +
-    uint32_t(instruction[2] << 8) +
-    uint32_t(instruction[3]);
+  uint8_t opCode = instruction[0] >> 2;
 
-  mips_cpu_set_register(state, 0, instructionComp);
+  // Determine whether the instruction is R, I or J type
+  if(opCode == 0){
+  // R type instruction
+
+} else if((opCode >= 2) && (opCode <= 3)) {
+  // J type instruction
+
+} else {
+  // Assume I type instruction (may also be invalid op code)
+
+}
 
   return mips_Success;
 }

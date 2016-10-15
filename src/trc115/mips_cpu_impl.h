@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "../shared/mips.h"
 
 // Define number of registers as a constant, allows for easier migration to
@@ -22,4 +24,22 @@ struct mips_cpu_impl{
   unsigned debugLevel;
 
   FILE* debugDest;
+
+  vector<instruction_impl>
+
+};
+
+// Used to define the instruction set
+struct instruction_impl{
+  char type;
+  uint8_t opCode;
+
+  instruction_impl(char typeIn, uint8_t opCodeIn):
+    type(typeIn),
+    opCode(opCodeIn){}
+
+};
+
+struct r_instruction_impl : public instruction_impl{
+  uint8_t function;
 };
