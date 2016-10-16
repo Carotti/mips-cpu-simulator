@@ -125,8 +125,7 @@ mips_error mips_cpu_step(mips_cpu_h state){
     return mips_ErrorInvalidHandle;
   }
   // This is where the fun happens!!
-
-  // TODO: Advance Program counter
+  
   // TODO: Debugging printout.... ughhhh
 
   // Instructions are 4 bytes long

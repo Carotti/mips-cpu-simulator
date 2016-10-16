@@ -1,43 +1,9 @@
-#include "../shared/mips.h"
-#include "mips_instruction.h"
+#include "test_mips.h"
 
-#include <iostream>
 #include <bitset>
 
-using namespace std;
 
 int main(){
-
-/*  // Create a new instance of mips_mem_provider
-  mips_mem_h testMem = mips_mem_create_ram(4096);
-
-  mips_cpu_h testCPU = mips_cpu_create(testMem);
-
-  uint32_t val = 108;
-  cout << mips_cpu_set_register(testCPU, 5, val) << endl;
-  val = 456;
-  cout << mips_cpu_set_register(testCPU, 32, val) << endl;
-
-  for (uint32_t i = 0; i < 32; i++){
-    mips_cpu_get_register(testCPU, i, &val);
-    cout << val << ", ";
-  }
-
-  cout << endl;
-  mips_cpu_get_pc(testCPU, &val);
-  cout << val << endl;
-
-  val = 405;
-
-  mips_cpu_set_pc(testCPU, val);
-  mips_cpu_get_pc(testCPU, &val);
-  cout << val << endl;
-
-  mips_cpu_free(testCPU);
-  // Set testCPU to NULL to prevent 'double delete' errors
-  testCPU = NULL;
-
-  mips_cpu_free(testCPU);*/
 
   mips_test_begin_suite();
   mips_mem_h testMem = mips_mem_create_ram(4096);
@@ -94,4 +60,31 @@ int main(){
   mips_test_end_suite();
 
   return 0;
+}
+
+mips_error test_instruction(
+  char* instructionName,
+  char* testDescription,
+  mips_cpu_h state,
+  instruction_impl instruction,
+  // Array of which registers the result can be expected from
+  uint8_t* resultRegs,
+  // Array of expected results
+  uint32_t* expectedResults
+){
+
+}
+
+mips_error test_instruction(
+  char* instructionName,
+  char* testDescription,
+  mips_cpu_h state,
+  instruction_impl instruction,
+  // Array of which registers the result can be expected from
+  uint8_t* resultRegs,
+  // Array of expected results
+  uint32_t* expectedResults,
+  uint32_t expectedPc
+){
+
 }
