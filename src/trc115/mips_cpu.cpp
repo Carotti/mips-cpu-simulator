@@ -130,42 +130,36 @@ mips_error mips_cpu_step(mips_cpu_h state){
   // TODO: Debugging printout.... ughhhh
 
   // Instructions are 4 bytes long
-  uint8_t instructionData[4];
+  uint32_t instructionData;
 
   // First step is to retrieve the instruction from memory at program counter
   mips_error attemptRead = mips_mem_read(
     state->mem,
     state->pc,
     4,
-    instructionData);
+    (uint8_t*)&instructionData);
 
   // If mips_mem_read declares an error, the error is returned
   if(attemptRead != mips_Success){
     return attemptRead;
   }
 
-  uint8_t opCode = instructionData[0] >> 2;
-
-  // u for undefined (or unimplemented) instruction
-  char type = 'u';
+  // u for undefined instruction
+  instruction_impl nextInstruction = instruction_impl(instructionData, 'u');
 
   // Determine whether the instruction is R, I or J type or undefined
   for (unsigned i = 0; i < unsigned(state->instruction_set.size()); i++){
     // Loop through the instruction set
-    if (state->instruction_set[i].opCode == opCode){
+    if (state->instruction_set[i].opCode == nextInstruction.opCode){
       // type of the opCode is found so the instruction is valid
-      type = state->instruction_set[i].type;
+      nextInstruction.type = state->instruction_set[i].type;
     }
   }
 
-  instruction_impl nextInstruction = instruction_impl(
-    uint32_t((instructionData[0] << 24)|(instructionData[1] << 16)|
-      (instructionData[2] << 8)|(instructionData[3])),
-    type,
-    opCode);
-
   // cout << bitset<32>(nextInstruction.data) << endl;
   // cout << unsigned(nextInstruction.opCode) << endl;
+
+  // advancing the pc now means if there is a branch, subtract 4 from that
 
   switch(nextInstruction.type){
     case 'r':
@@ -189,24 +183,24 @@ mips_error mips_cpu_step(mips_cpu_h state){
 }
 
 mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
-  uint8_t source1 = uint8_t((instruction.data & 0x03E00000) >> 21);
-  uint8_t source2 = uint8_t((instruction.data & 0x001F0000) >> 16);
-  uint8_t dest = uint8_t((instruction.data & 0x0000F800) >> 11);
-  uint8_t shift = uint8_t((instruction.data & 0x000007C0) >> 6);
-  uint8_t function = uint8_t((instruction.data & 0x0000003F));
+
+  // Create an instance of instruction_impl_r from the raw data from instruction
+  instruction_impl_r instrR = instruction_impl_r(instruction.data);
 
   // The two operands corresponding to source1 and source2
   uint32_t op1 = 0;
   uint32_t op2 = 0;
-  mips_cpu_get_register(state, source1, &op1);
-  mips_cpu_get_register(state, source2, &op2);
+  mips_cpu_get_register(state, instrR.source1, &op1);
+  mips_cpu_get_register(state, instrR.source2, &op2);
 
+  // Advance the program counter
+  advance_pc(state, 4);
 
   // perform the operation based on the instruction
-  switch(function){
+  switch(instrR.function){
     case 0:
       // sll
-      return mips_cpu_set_register(state, dest, op2 << shift);
+      return mips_cpu_set_register(state, instrR.dest, op2 << instrR.shift);
       break;
     case 2:
       // srl
@@ -322,4 +316,11 @@ mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
 mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
 
   return mips_Success;
+}
+
+void advance_pc(mips_cpu_h state, int offset){
+  uint32_t oldPc;
+  mips_cpu_get_pc(state, &oldPc);
+
+  mips_cpu_set_pc(state, oldPc + offset);
 }

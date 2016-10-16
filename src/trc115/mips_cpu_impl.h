@@ -1,31 +1,9 @@
 #include <vector>
 
 #include "../shared/mips.h"
+#include "mips_instruction.h"
 
 using namespace std;
-
-
-
-// Used to define the instruction
-struct instruction_impl{
-  char type;
-  uint8_t opCode;
-
-  // Only used for an 'actual' function rather than instruction set member
-  uint32_t data;
-
-  // Constructor for instruction_impl without rFunction defined
-  instruction_impl(char typeIn, uint8_t opCodeIn):
-    type(typeIn),
-    opCode(opCodeIn),
-    data(0){}
-
-  // Constructor where there is actual raw data
-  instruction_impl(uint32_t dataIn, char typeIn, uint8_t opCodeIn):
-    type(typeIn),
-    opCode(opCodeIn),
-    data(dataIn){}
-};
 
 struct mips_cpu_impl{
 
@@ -96,3 +74,6 @@ mips_error exec_j(mips_cpu_h state, instruction_impl &instruction);
 
 // function should execute i instruction (passed by reference) on state
 mips_error exec_i(mips_cpu_h state, instruction_impl &instruction);
+
+// advances the program counter of state by the specified offset
+void advance_pc(mips_cpu_h state, int offset);

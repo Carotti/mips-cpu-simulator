@@ -1,4 +1,5 @@
 #include "../shared/mips.h"
+#include "mips_instruction.h"
 
 #include <iostream>
 #include <bitset>
@@ -48,9 +49,14 @@ int main(){
   int success = 0;
 
   // [00094140] R8 = R9 << 5
-  uint8_t instruction[4] = {0x00, 0x09, 0x41, 0x40};
+  // uint32_t instruction = {0x00, 0x09, 0x41, 0x40};
 
-  mips_mem_write(testMem, 0, 4, instruction);
+  // Equivalent instruction: 00094140 R8 = R9 << 5
+  instruction_impl_r instruction = instruction_impl_r(0,9,8,5,0);
+  cout << bitset<32>(instruction.data) << endl;
+  cout << "actual instruction: " << endl << bitset<32>(0x00094140) << endl;
+
+  mips_mem_write(testMem, 0, 4, (uint8_t*)&instruction.data);
 
   uint32_t r8 = 0xFFFFFFFF;
   uint32_t r9 = 0xABABABAB;
@@ -60,7 +66,7 @@ int main(){
   mips_cpu_set_register(testCPU, 8, r8);
   mips_cpu_set_register(testCPU, 9, r9);
 
-  mips_cpu_step(testCPU);
+  cout << "error: " << mips_cpu_step(testCPU) << endl;
 
   mips_cpu_get_register(testCPU, 8, &r8);
 
