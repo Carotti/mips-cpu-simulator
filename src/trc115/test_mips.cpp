@@ -39,18 +39,31 @@ int main(){
   mips_cpu_free(testCPU);*/
 
   mips_test_begin_suite();
-
-  int testID = mips_test_begin_test("<internal>");
-
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
-  uint8_t data[4] = {0b00000000, 0b00000000, 0b00000000, 0b00000000};
 
-  mips_mem_write(testMem, 0, 4, data);
+
+  int testID = mips_test_begin_test("sll");
+  int success = 0;
+
+  // [00094140] R8 = R9 << 5
+  uint8_t instruction[4] = {0x00, 0x09, 0x41, 0x40};
+
+  mips_mem_write(testMem, 0, 4, instruction);
+
+  uint32_t r8 = 0xFFFFFFFF;
+  uint32_t r9 = 0xABABABAB;
+
+  mips_cpu_set_register(testCPU, 8, r8);
+  mips_cpu_set_register(testCPU, 9, r9);
+
   cout << mips_cpu_step(testCPU) << endl;
 
-  mips_test_end_test(testID, 1, "Test to see if tests work..?");
+
+  mips_test_end_test(testID, sucess, "Testing sll");
+
+
 
   mips_cpu_free(testCPU);
   testCPU = NULL;

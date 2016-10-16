@@ -74,7 +74,10 @@ mips_error mips_cpu_set_register(
     return mips_ErrorInvalidArgument;
   }
 
-  state->registers[index] = value;
+  if(index != 0) {
+    // Register 0 is always set to 0, even if you try and set it
+    state->registers[index] = value;
+  }
 
   return mips_Success;
 }
@@ -163,21 +166,23 @@ mips_error mips_cpu_step(mips_cpu_h state){
 
   switch(nextInstruction.type){
     case 'r':
-      exec_r(state, nextInstruction);
+      return exec_r(state, nextInstruction);
       break;
     case 'j':
-      exec_j(state, nextInstruction);
+      return exec_j(state, nextInstruction);
       break;
     case 'i':
-      exec_i(state, nextInstruction);
+      return exec_i(state, nextInstruction);
       break;
     case 'u':
       // Instruction is invalid, return with error
       return mips_ExceptionInvalidInstruction;
       break;
+    default:
+      // If the type is anything other than these, something has gone very wrong
+      // in reality, this can never be the case but it removed the warning!
+      return mips_ExceptionInvalidInstruction;
   }
-
-  return mips_Success;
 }
 
 mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
@@ -187,13 +192,116 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
   uint8_t shift = uint8_t((instruction.data & 0x000007C0) >> 11);
   uint8_t function = uint8_t((instruction.data & 0x0000003F) >> 11);
 
-  // result is used to store what the destination register will be set to
-  uint32_t result;
-
-
-  mips_cpu_set_register(state, dest, result);
-
-  return mips_Success;
+  // perform the operation based on the instruction
+  switch(function){
+    case 0:
+      // sll
+      return mips_cpu_set_register(state, dest, source1 << shift);
+      break;
+    case 2:
+      // srl
+      return mips_ErrorNotImplemented;
+      break;
+    case 3:
+      // sra
+      return mips_ErrorNotImplemented;
+      break;
+    case 4:
+      // sllv
+      return mips_ErrorNotImplemented;
+      break;
+    case 6:
+      // srlv
+      return mips_ErrorNotImplemented;
+      break;
+    case 7:
+      // srav
+      return mips_ErrorNotImplemented;
+      break;
+    case 8:
+      // jr
+      return mips_ErrorNotImplemented;
+      break;
+    case 9:
+      // jalr
+      return mips_ErrorNotImplemented;
+      break;
+    case 12:
+      // syscall
+      return mips_ErrorNotImplemented;
+      break;
+    case 13:
+      // break
+      return mips_ExceptionBreak;
+      break;
+    case 16:
+      // mfhi
+      return mips_ErrorNotImplemented;
+      break;
+    case 17:
+      // mthi
+      return mips_ErrorNotImplemented;
+      break;
+    case 18:
+      // mflo
+      return mips_ErrorNotImplemented;
+      break;
+    case 19:
+      // mtlo
+      return mips_ErrorNotImplemented;
+      break;
+    case 24:
+      // mult
+      return mips_ErrorNotImplemented;
+      break;
+    case 25:
+      // multu
+      return mips_ErrorNotImplemented;
+      break;
+    case 26:
+      // div
+      return mips_ErrorNotImplemented;
+      break;
+    case 27:
+      // divu
+      return mips_ErrorNotImplemented;
+      break;
+    case 32:
+      // add
+      return mips_ErrorNotImplemented;
+      break;
+    case 33:
+      // addu
+      return mips_ErrorNotImplemented;
+      break;
+    case 34:
+      // sub
+      return mips_ErrorNotImplemented;
+      break;
+    case 35:
+      // subu
+      return mips_ErrorNotImplemented;
+      break;
+    case 36:
+      // and
+      return mips_ErrorNotImplemented;
+      break;
+    case 37:
+      // or
+      return mips_ErrorNotImplemented;
+      break;
+    case 38:
+      // xor
+      return mips_ErrorNotImplemented;
+      break;
+    case 39:
+      // nor
+      return mips_ErrorNotImplemented;
+      break;
+    default:
+      // If not any of the above cases, the instruction is invalid
+      return mips_ExceptionInvalidInstruction;
+  }
 }
 
 mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
