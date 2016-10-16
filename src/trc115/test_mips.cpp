@@ -55,13 +55,23 @@ int main(){
   uint32_t r8 = 0xFFFFFFFF;
   uint32_t r9 = 0xABABABAB;
 
+  uint32_t expectedResult = r9 << 5;
+
   mips_cpu_set_register(testCPU, 8, r8);
   mips_cpu_set_register(testCPU, 9, r9);
 
-  cout << mips_cpu_step(testCPU) << endl;
+  mips_cpu_step(testCPU);
 
+  mips_cpu_get_register(testCPU, 8, &r8);
 
-  mips_test_end_test(testID, sucess, "Testing sll");
+  cout << r8 << endl;
+  cout << expectedResult << endl;
+
+  if(r8 == expectedResult){
+    success = 1;
+  }
+
+  mips_test_end_test(testID, success, "Testing sll");
 
 
 

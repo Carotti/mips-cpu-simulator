@@ -161,8 +161,8 @@ mips_error mips_cpu_step(mips_cpu_h state){
     type,
     opCode);
 
-  cout << bitset<32>(nextInstruction.data) << endl;
-  cout << unsigned(nextInstruction.opCode) << endl;
+  // cout << bitset<32>(nextInstruction.data) << endl;
+  // cout << unsigned(nextInstruction.opCode) << endl;
 
   switch(nextInstruction.type){
     case 'r':
@@ -189,14 +189,21 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
   uint8_t source1 = uint8_t((instruction.data & 0x03E00000) >> 21);
   uint8_t source2 = uint8_t((instruction.data & 0x001F0000) >> 16);
   uint8_t dest = uint8_t((instruction.data & 0x0000F800) >> 11);
-  uint8_t shift = uint8_t((instruction.data & 0x000007C0) >> 11);
-  uint8_t function = uint8_t((instruction.data & 0x0000003F) >> 11);
+  uint8_t shift = uint8_t((instruction.data & 0x000007C0) >> 6);
+  uint8_t function = uint8_t((instruction.data & 0x0000003F));
+
+  // The two operands corresponding to source1 and source2
+  uint32_t op1 = 0;
+  uint32_t op2 = 0;
+  mips_cpu_get_register(state, source1, &op1);
+  mips_cpu_get_register(state, source2, &op2);
+
 
   // perform the operation based on the instruction
   switch(function){
     case 0:
       // sll
-      return mips_cpu_set_register(state, dest, source1 << shift);
+      return mips_cpu_set_register(state, dest, op2 << shift);
       break;
     case 2:
       // srl
