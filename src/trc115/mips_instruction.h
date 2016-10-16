@@ -9,7 +9,6 @@
 struct instruction_impl{
   char type;
   uint8_t opCode;
-
   // Only used for an 'actual' function rather than instruction set member
   uint32_t data;
 
@@ -22,8 +21,8 @@ struct instruction_impl{
   // Constructor where there is actual raw data
   instruction_impl(uint32_t dataIn, char typeIn):
     type(typeIn),
-    data(dataIn),
-    opCode(uint8_t((dataIn & 0xFC000000) >> 26)){}
+    opCode(uint8_t((dataIn & 0xFC000000) >> 26)),
+    data(dataIn){}
 };
 
 // Used for R type instructions, inherits the generic function type

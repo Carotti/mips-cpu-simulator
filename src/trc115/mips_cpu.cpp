@@ -204,7 +204,7 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 2:
       // srl
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op2 >> instrR.shift);
       break;
     case 3:
       // sra
