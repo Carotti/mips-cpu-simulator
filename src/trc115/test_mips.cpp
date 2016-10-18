@@ -9,6 +9,57 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
+  // In the test format, Addresses are in Decimal and Data is in Hex
+  // Every test MUST be 7 lines long, with no gaps between tests
+  // sll
+  //    Verify that R8 = R9 << 5
+  //    1  - Number of instructions to execute as part of test
+  //    0:00094140 - Memory Locations to set before test
+  //    8:FBFBFBFB 9:ABABABAB - Registers to set before test
+  //    0:00094140 -  Memory Locations to check at end of test
+  //    8:75757560 9:ABABABAB - Registers to check at end of test
+
+
+  vector<test> tests;
+  test newTest;
+  newTest.state = testCPU;
+  newTest.mem = testMem;
+
+  // Begin parsing tests.txt ... TODO: Better Parsing (ft. validation)
+  ifstream testsIn("tests.txt");
+  string currentLine;
+  // While each line is empty
+  while(getline(testsIn, currentLine)){
+    // Reading instruction name in
+    currentLine.erase(0, currentLine.find_first_not_of(" \t"));
+    const char* input = currentLine.c_str();
+    newTest.testName = input;
+    cout << newTest.testName << endl;
+
+    // Reading instruction description in
+    getline(testsIn, currentLine);
+    currentLine.erase(0, currentLine.find_first_not_of(" \t"));
+    input = currentLine.c_str();
+    newTest.testDescription = input;
+    cout << newTest.testDescription << endl;
+
+    // Reading number of instructions in
+    getline(testsIn, currentLine);
+    stringstream ss1(currentLine);
+    ss1 >> newTest.numInstructions;
+    cout << newTest.numInstructions << endl;
+
+    getline(testsIn, currentLine);
+    stringstream ss2(currentLine);
+    string setString;
+    memory_state newMemState;
+    while(ss2 >> setString){
+
+    }
+
+    getline(testsIn, currentLine);
+  }
+
   // 33 would be the number of results required to check every reg and pc
   uint8_t resultRegs[33];
   uint32_t expectedResults[33];
