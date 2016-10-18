@@ -107,9 +107,9 @@ int main(){
   );
 
   // JR Testing
-  mips_cpu_set_register(testCPU, 9, 0x000000F4);
+  mips_cpu_set_register(testCPU, 9, 0x000000AB);
   resultRegs[0] = 255; // Checking the program counter
-  expectedResults[0] = 0x000000F4;
+  expectedResults[0] = 0x000002AC;
   test_instruction(
     "jr",
     "Verify that pc = r9",
@@ -121,14 +121,11 @@ int main(){
     expectedResults
   );
 
-  mips_cpu_set_register(testCPU, 31, 28);
-
-
   // JALR Testing
-  mips_cpu_set_register(testCPU, 9, 0x000000F4);
+  mips_cpu_set_register(testCPU, 9, 0x000000AB);
   resultRegs[0] = 255; // Checking the program counter
   resultRegs[1] = 31;
-  expectedResults[0] = 0x000000F4;
+  expectedResults[0] =0x000002AC;
   uint32_t oldPc;
   mips_cpu_get_pc(testCPU, &oldPc);
   expectedResults[1] = oldPc + 4; // Check that the link register is set
