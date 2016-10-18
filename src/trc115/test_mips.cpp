@@ -6,190 +6,19 @@
 int main(){
 
   mips_test_begin_suite();
+
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
-  // In the test format, Addresses are in Decimal and Data is in Hex
-  // Every test MUST be 7 lines long, with no gaps between tests
-  // sll
-  //    Verify that R8 = R9 << 5
-  //    1  - Number of instructions to execute as part of test
-  //    0:00094140 - Memory Locations to set before test
-  //    8:FBFBFBFB 9:ABABABAB - Registers to set before test
-  //    0:00094140 -  Memory Locations to check at end of test
-  //    8:75757560 9:ABABABAB - Registers to check at end of test
+  // Do testing here
 
-
-  vector<test> tests;
-  test newTest;
-  newTest.state = testCPU;
-  newTest.mem = testMem;
-
-  // Begin parsing tests.txt ... TODO: Better Parsing (ft. validation)
-  ifstream testsIn("tests.txt");
-  string currentLine;
-  // While each line is empty
-  while(getline(testsIn, currentLine)){
-    // Reading instruction name in
-    currentLine.erase(0, currentLine.find_first_not_of(" \t"));
-    const char* input = currentLine.c_str();
-    newTest.testName = input;
-    cout << newTest.testName << endl;
-
-    // Reading instruction description in
-    getline(testsIn, currentLine);
-    currentLine.erase(0, currentLine.find_first_not_of(" \t"));
-    input = currentLine.c_str();
-    newTest.testDescription = input;
-    cout << newTest.testDescription << endl;
-
-    // Reading number of instructions in
-    getline(testsIn, currentLine);
-    stringstream ss1(currentLine);
-    ss1 >> newTest.numInstructions;
-    cout << newTest.numInstructions << endl;
-
-    getline(testsIn, currentLine);
-    stringstream ss2(currentLine);
-    string setString;
-    memory_state newMemState;
-    while(ss2 >> setString){
-
-    }
-
-    getline(testsIn, currentLine);
-  }
-
-  // 33 would be the number of results required to check every reg and pc
-  uint8_t resultRegs[33];
-  uint32_t expectedResults[33];
-
-  // SLL Testing
-  mips_cpu_set_register(testCPU, 9, 0xFBABABAB);
-  resultRegs[0] = 8;
-  expectedResults[0] = 0x75757560;
-  test_instruction(
-    "sll",
-    "Verify that R8 = R9 << 5",
-    testCPU,
-    testMem,
-    instruction_impl_r(0, 9, 8, 5, 0),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // SRL Testing
-  mips_cpu_set_register(testCPU, 9, 0xFBABABAB);
-  resultRegs[0] = 8;
-  expectedResults[0] = 0x7DD5D5D;
-  test_instruction(
-    "srl",
-    "Verify that R8 = R9 >> 5",
-    testCPU,
-    testMem,
-    instruction_impl_r(0, 9, 8, 5, 2),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // SRA Testing
-  mips_cpu_set_register(testCPU, 9, 0x80000000);
-  resultRegs[0] = 8;
-  expectedResults[0] = 0xFC000000;
-  test_instruction(
-    "sra",
-    "Verify that R8 = R9 (arithmetic)>> 5",
-    testCPU,
-    testMem,
-    instruction_impl_r(0, 9, 8, 5, 3),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // SLLV Testing
-  mips_cpu_set_register(testCPU, 9, 0xFBABABAB);
-  mips_cpu_set_register(testCPU, 10, 0x00000005);
-  resultRegs[0] = 8;
-  expectedResults[0] = 0x75757560;
-  test_instruction(
-    "sllv",
-    "Verify that R8 = R9 << R10",
-    testCPU,
-    testMem,
-    instruction_impl_r(10, 9, 8, 0, 4),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // SRLV Testing
-  mips_cpu_set_register(testCPU, 9, 0xFBABABAB);
-  mips_cpu_set_register(testCPU, 10, 0x00000005);
-  resultRegs[0] = 8;
-  expectedResults[0] = 0x7DD5D5D;
-  test_instruction(
-    "srlv",
-    "Verify that R8 = R9 >> R10",
-    testCPU,
-    testMem,
-    instruction_impl_r(10, 9, 8, 0, 6),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // SRAV Testing
-  mips_cpu_set_register(testCPU, 9, 0x80000000);
-  mips_cpu_set_register(testCPU, 10, 0x00000005);
-  resultRegs[0] = 8;
-  expectedResults[0] = 0xFC000000;
-  test_instruction(
-    "srav",
-    "Verify that R8 = R9 >>(arithmetic) R10",
-    testCPU,
-    testMem,
-    instruction_impl_r(10, 9, 8, 0, 7),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // JR Testing
-  mips_cpu_set_register(testCPU, 9, 0x000000AB);
-  resultRegs[0] = 255; // Checking the program counter
-  expectedResults[0] = 0x000002AC;
-  test_instruction(
-    "jr",
-    "Verify that pc = r9",
-    testCPU,
-    testMem,
-    instruction_impl_r(9, 0, 0, 0, 8),
-    1,
-    resultRegs,
-    expectedResults
-  );
-
-  // JALR Testing
-  mips_cpu_set_register(testCPU, 9, 0x000000AB);
-  resultRegs[0] = 255; // Checking the program counter
-  resultRegs[1] = 31;
-  expectedResults[0] =0x000002AC;
-  uint32_t oldPc;
-  mips_cpu_get_pc(testCPU, &oldPc);
-  expectedResults[1] = oldPc + 4; // Check that the link register is set
-  test_instruction(
-    "jalr",
-    "Verify that pc = r9 and r31 = (old PC + 4)",
-    testCPU,
-    testMem,
-    instruction_impl_r(9, 0, 0, 0, 9),
-    1,
-    resultRegs,
-    expectedResults
-  );
+  test basic_sll("sll", "Verify that R8 = R9 << 5 and R9 is unchanged", 1);
+  basic_sll.memWrite.push_back(memory_state(
+    0, instruction_impl_r(0, 9, 8, 5, 0).data));
+  basic_sll.regWrite.push_back(register_state(9, 0xFBABABAB));
+  basic_sll.regCheck.push_back(register_state(8, 0x75757560));
+  basic_sll.regCheck.push_back(register_state(9, 0xFBABABAB));
+  basic_sll.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
@@ -201,62 +30,55 @@ int main(){
   return 0;
 }
 
-mips_error test_instruction(
-  const char* instructionName,
-  const char* testDescription,
-  mips_cpu_h state,
-  mips_mem_h mem,
-  instruction_impl instruction,
-  uint8_t numResults,
-  // Array of which registers the result can be expected from, 255 means pc
-  uint8_t *resultRegs,
-  // Array of expected results
-  uint32_t *expectedResults
-){
-  if(state == NULL ||
-    resultRegs == NULL ||
-    expectedResults == NULL ||
-    instructionName == NULL ||
-    testDescription == NULL){
-    return mips_ErrorInvalidHandle;
+mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
+
+  // Setup the initial conditions of the test
+  for(unsigned i = 0; i < unsigned(memWrite.size()); i++){
+    mips_mem_write(mem, memWrite[i].address, 4, (uint8_t*)&memWrite[i].value);
   }
-    int testID = mips_test_begin_test(instructionName);
-    uint32_t pc = 0;
-    mips_cpu_get_pc(state, &pc);
 
-    // write the instruction to the next instruction to be executed
-    mips_mem_write(mem, pc, 4, (uint8_t*)&instruction.data);
-
-    mips_error attemptStep = mips_cpu_step(state);
-
-    // Check that step was successful, if not return the error which occurred
-    if (attemptStep != mips_Success){
-      return attemptStep;
+  for(unsigned i = 0; i < unsigned(regWrite.size()); i++){
+    if (regWrite[i].index < 32){
+      mips_cpu_set_register(
+        state,
+        unsigned(regWrite[i].index),
+        regWrite[i].value);
+    } else if (regWrite[i].index == 255){
+      mips_cpu_set_pc(state, regWrite[i].value);
     }
+  }
 
-    // Assume the test is successful
-    int success = 1;
+  int testID = mips_test_begin_test(testName);
+  int success = 1;
 
-    uint32_t regValue = 0;
+  // Make the CPU perform the required number of instructions for the test
+  for(unsigned i = 0; i < numInstructions; i++){
+    mips_cpu_step(state);
+  }
 
-    // If any of the registers don't match the expected result, fail the test
-    for (unsigned i = 0; i < unsigned(numResults); i++) {
-
-      if(resultRegs[i] < 32){
-        // Check Register
-        mips_cpu_get_register(state, resultRegs[i], &regValue);
-      } else if(resultRegs[i] == 255){
-        // Check Program Counter
-        mips_cpu_get_pc(state, &regValue);
-      } else {
-        return mips_ErrorInvalidArgument;
-      }
-
-      if (regValue != expectedResults[i]) {
+  // Check the state of the CPU is as expected afterward
+  for(unsigned i = 0; i < unsigned(memCheck.size()); i++){
+    uint8_t testValue[4];
+    mips_mem_read(mem, memCheck[i].address, 4, testValue);
+    if (uint32_t((testValue[0] << 24) | (testValue[1] << 16) |
+      (testValue [2] << 8) | testValue [3]) != memCheck[i].value) {
         success = 0;
     }
   }
 
+  for(unsigned i = 0; i < unsigned(regCheck.size()); i++){
+    uint32_t testValue = 0;
+    if (regCheck[i].index < 32){
+      mips_cpu_get_register(state, unsigned(regCheck[i].index), &testValue);
+    } else if (regWrite[i].index == 255){
+      mips_cpu_get_pc(state, &testValue);
+    }
+    if (testValue != regCheck[i].value){
+      success = 0;
+    }
+  }
+
   mips_test_end_test(testID, success, testDescription);
+
   return mips_Success;
 }
