@@ -52,9 +52,12 @@ struct mips_cpu_impl{
       instruction_set.push_back(instruction_impl('i', 43)); // sw
     }
 
+  uint32_t registers[32];
+
   uint32_t pc;
 
-  uint32_t registers[32];
+  uint32_t hi;
+  uint32_t lo;
 
   mips_mem_h mem;
 

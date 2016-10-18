@@ -40,6 +40,9 @@ mips_error mips_cpu_reset(mips_cpu_h state){
 
   state->pc = 0;
 
+  state->hi = 0;
+  state->lo = 0;
+
   return mips_Success;
 }
 
@@ -195,6 +198,9 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
   // Advance the program counter
   advance_pc(state, 4);
 
+  uint32_t oldPc;
+  mips_cpu_get_pc(state, &oldPc);
+
   // perform the operation based on the instruction
   switch(instrR.function){
     case 0:
@@ -207,27 +213,28 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 3:
       // sra
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, int32_t(op2) >> instrR.shift);
       break;
     case 4:
       // sllv
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op2 << op1);
       break;
     case 6:
       // srlv
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op2 >> op1);
       break;
     case 7:
       // srav
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, int32_t(op2) >> op1);
       break;
     case 8:
       // jr
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_pc(state, op1);
       break;
     case 9:
       // jalr
-      return mips_ErrorNotImplemented;
+      mips_cpu_set_register(state, 31, oldPc);
+      return mips_cpu_set_pc(state, op1);
       break;
     case 12:
       // syscall
@@ -239,28 +246,35 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 16:
       // mfhi
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, state->hi);
       break;
     case 17:
       // mthi
-      return mips_ErrorNotImplemented;
+      state->hi = op1;
+      return mips_Success;
       break;
     case 18:
       // mflo
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, state->lo);
       break;
     case 19:
       // mtlo
-      return mips_ErrorNotImplemented;
+      state->lo = op1;
+      return mips_Success;
       break;
     case 24:
       // mult
       return mips_ErrorNotImplemented;
       break;
-    case 25:
+    case 25:{
       // multu
-      return mips_ErrorNotImplemented;
-      break;
+      uint64_t result = uint64_t(op1 * op2);
+      state->hi = uint32_t(result >> 32);
+      state->lo = uint32_t(result);
+      cout << "lo: " << state->lo;
+      cout << "hi: " << state->hi;
+      return mips_Success;
+      break;}
     case 26:
       // div
       return mips_ErrorNotImplemented;
