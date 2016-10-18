@@ -46,4 +46,22 @@ struct test{
     numInstructions(numInstructionsIn){}
 
   mips_error perform_test(mips_cpu_h state, mips_mem_h mem);
+
+  void writeMem(uint32_t address, uint32_t value){
+    memWrite.push_back(memory_state(address, value));
+  }
+
+  void writeReg(uint8_t index, uint32_t value){
+    regWrite.push_back(register_state(index, value));
+  }
+
+  void checkMem(uint32_t address, uint32_t value){
+    memCheck.push_back(memory_state(address, value));
+  }
+
+  void checkReg(uint8_t index, uint32_t value){
+    regCheck.push_back(register_state(index, value));
+  }
 };
+
+uint32_t get_pc(mips_cpu_h state);

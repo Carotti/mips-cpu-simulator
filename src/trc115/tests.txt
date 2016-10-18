@@ -1,7 +1,0 @@
-sll
-  Verify that R8 = R9 << 5
-  0xA
-  0:00094140
-  8:FBFBFBFB 9:ABABABAB
-  0:00094140
-  8:75757560 9:ABABABAB
