@@ -233,7 +233,7 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 9:
       // jalr
-      mips_cpu_set_register(state, instR.dest, oldPc + 4);
+      mips_cpu_set_register(state, instrR.dest, oldPc + 4);
       return mips_cpu_set_pc(state, op1);
       break;
     case 12:
@@ -262,26 +262,47 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       state->lo = op1;
       return mips_Success;
       break;
-    case 24:
+    case 24:{
+      int64_t op1s = op1;
+      int64_t op2s = op2;
       // mult
-      return mips_ErrorNotImplemented;
-      break;
-    case 25:{
-      // multu
-      uint64_t result = uint64_t(op1 * op2);
+      if (op1 & 0x80000000){
+        // op1 is negative, do a sign extension
+        op1s = 0xFFFFFFFF00000000 | op1;
+      }
+      if (op2 & 0x80000000){
+        // op2 is negative, do a sign extension
+        op2s = 0xFFFFFFFF00000000 | op2;
+      }
+      int64_t result = op1s * op2s;
       state->hi = uint32_t(result >> 32);
       state->lo = uint32_t(result);
-      cout << "lo: " << state->lo;
-      cout << "hi: " << state->hi;
+      return mips_Success;
+      break;}
+    case 25:{
+      // multu
+      uint64_t result = uint64_t(op1) * uint64_t(op2);
+      state->hi = uint32_t(result >> 32);
+      state->lo = uint32_t(result);
       return mips_Success;
       break;}
     case 26:
       // div
-      return mips_ErrorNotImplemented;
+      if (op2 == 0){
+        return mips_ExceptionInvalidInstruction;
+      }
+      state->lo = signed(op1) / signed(op2);
+      state->hi = signed(op1) % signed(op2);
+      return mips_Success;
       break;
     case 27:
       // divu
-      return mips_ErrorNotImplemented;
+      if (op2 == 0){
+        return mips_ExceptionInvalidInstruction;
+      }
+      state->lo = op1 / op2;
+      state->hi = op1 % op2;
+      return mips_Success;
       break;
     case 32:
       // add

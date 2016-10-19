@@ -57,8 +57,65 @@ int main(){
   basic_srav.checkReg(10, 5);
   basic_srav.perform_test(testCPU, testMem);
 
-  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged");
-  basic_jr.writeMem(get_pc(testCPU), instruction_impl_r(9, 0, 0, 0, 3))
+  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged", 1);
+  basic_jr.writeMem(get_pc(testCPU), instruction_impl_r(9, 0, 0, 0, 8).data);
+  basic_jr.writeReg(9, 0x000000A4);
+  basic_jr.checkReg(255, 0x000000A4);
+  basic_jr.checkReg(9, 0x000000A4);
+  basic_jr.perform_test(testCPU, testMem);
+
+  test basic_jalr("jalr", "Verify that pc = R9, R1 = R9 + 8 and R9 unchanged", 1);
+  basic_jalr.writeMem(get_pc(testCPU), instruction_impl_r(9, 0, 31, 0, 9).data);
+  basic_jalr.checkReg(9, 0x000000A4);
+  basic_jalr.checkReg(255, 0x000000A4);
+  basic_jalr.checkReg(31, 0x000000AC);
+  basic_jalr.perform_test(testCPU, testMem);
+
+  test basic_multu("multu", "Verify values of hi and lo after R10 * R11", 3);
+  basic_multu.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 25).data);
+  basic_multu.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
+  basic_multu.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_multu.writeReg(10, 0x0BABABAB);
+  basic_multu.writeReg(11, 0xFEFEFEFE);
+  basic_multu.checkReg(8, 0x0B9FF447);
+  basic_multu.checkReg(9, 0xE651FDAA);
+  basic_multu.perform_test(testCPU, testMem);
+
+  test basic_mult("mult", "Verify values of hi and lo after R10 * R11", 3);
+  basic_mult.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 24).data);
+  basic_mult.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
+  basic_mult.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_mult.checkReg(8, 0xFFF4489C);
+  basic_mult.checkReg(9, 0xE651FDAA);
+  basic_mult.perform_test(testCPU, testMem);
+
+  test basic_divu("divu", "Check hi and lo after R10 / R11", 3);
+  basic_divu.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
+  basic_divu.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
+  basic_divu.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_divu.writeReg(10, 0xF1489B44);
+  basic_divu.writeReg(11, 0x000000A1);
+  basic_divu.checkReg(8, 121);
+  basic_divu.checkReg(9, 25143275);
+  basic_divu.perform_test(testCPU, testMem);
+
+  test basic_div("div", "Check hi and lo after R10 / R11 (signed)", 3);
+  basic_div.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 26).data);
+  basic_div.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
+  basic_div.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_div.checkReg(8, 0xffffff87);
+  basic_div.checkReg(9, 0xffe8999d);
+  basic_div.perform_test(testCPU, testMem);
+
+  test div_negop2("div", "Check hi and lo after R10 / R11 (signed) where R11 is negative", 3);
+  div_negop2.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 26).data);
+  div_negop2.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
+  div_negop2.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  div_negop2.writeReg(10, 0x0BF9F147);
+  div_negop2.writeReg(11, 0xFFFFFF12);
+  div_negop2.checkReg(8, 0xB);
+  div_negop2.checkReg(9, 0xfff31e2e);
+  div_negop2.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
@@ -116,7 +173,7 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
     uint32_t testValue = 0;
     if (regCheck[i].index < 32){
       mips_cpu_get_register(state, unsigned(regCheck[i].index), &testValue);
-    } else if (regWrite[i].index == 255){
+    } else if (regCheck[i].index == 255){
       mips_cpu_get_pc(state, &testValue);
     }
     if (testValue != regCheck[i].value){
