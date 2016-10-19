@@ -57,6 +57,8 @@ int main(){
   basic_srav.checkReg(10, 5);
   basic_srav.perform_test(testCPU, testMem);
 
+  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged");
+  basic_jr.writeMem(get_pc(testCPU), instruction_impl_r(9, 0, 0, 0, 3))
 
   mips_mem_free(testMem);
   testMem = NULL;

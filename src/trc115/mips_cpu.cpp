@@ -229,12 +229,12 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 8:
       // jr
-      return mips_cpu_set_pc(state, op1 << 2);
+      return mips_cpu_set_pc(state, op1);
       break;
     case 9:
       // jalr
-      mips_cpu_set_register(state, 31, oldPc);
-      return mips_cpu_set_pc(state, op1 << 2);
+      mips_cpu_set_register(state, instR.dest, oldPc + 4);
+      return mips_cpu_set_pc(state, op1);
       break;
     case 12:
       // syscall
