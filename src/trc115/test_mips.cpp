@@ -71,28 +71,35 @@ int main(){
   basic_jalr.checkReg(31, 0x000000AC);
   basic_jalr.perform_test(testCPU, testMem);
 
-  test basic_multu("multu", "Verify values of hi and lo after R10 * R11", 3);
+  // TODO: Add nops since 2 instructions before mult/divide can't be mfhi or mflo
+  test basic_multu("multu", "Verify values of hi and lo after R10 * R11", 5);
   basic_multu.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 25).data);
   basic_multu.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
   basic_multu.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_multu.writeMem(get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  basic_multu.writeMem(get_pc(testCPU) + 16, instruction_impl_r(0, 0, 0, 0, 0).data);
   basic_multu.writeReg(10, 0x0BABABAB);
   basic_multu.writeReg(11, 0xFEFEFEFE);
   basic_multu.checkReg(8, 0x0B9FF447);
   basic_multu.checkReg(9, 0xE651FDAA);
   basic_multu.perform_test(testCPU, testMem);
 
-  test basic_mult("mult", "Verify values of hi and lo after R10 * R11", 3);
+  test basic_mult("mult", "Verify values of hi and lo after R10 * R11", 5);
   basic_mult.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 24).data);
   basic_mult.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
   basic_mult.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_mult.writeMem(get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  basic_mult.writeMem(get_pc(testCPU) + 16, instruction_impl_r(0, 0, 0, 0, 0).data);
   basic_mult.checkReg(8, 0xFFF4489C);
   basic_mult.checkReg(9, 0xE651FDAA);
   basic_mult.perform_test(testCPU, testMem);
 
-  test basic_divu("divu", "Check hi and lo after R10 / R11", 3);
+  test basic_divu("divu", "Check hi and lo after R10 / R11", 5);
   basic_divu.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
   basic_divu.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
   basic_divu.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_divu.writeMem(get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  basic_divu.writeMem(get_pc(testCPU) + 16, instruction_impl_r(0, 0, 0, 0, 0).data);
   basic_divu.writeReg(10, 0xF1489B44);
   basic_divu.writeReg(11, 0x000000A1);
   basic_divu.checkReg(8, 121);
@@ -103,6 +110,8 @@ int main(){
   basic_div.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 26).data);
   basic_div.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
   basic_div.writeMem(get_pc(testCPU) + 8, instruction_impl_r(0, 0, 9, 0, 18).data);
+  basic_div.writeMem(get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  basic_div.writeMem(get_pc(testCPU) + 16, instruction_impl_r(0, 0, 0, 0, 0).data);
   basic_div.checkReg(8, 0xffffff87);
   basic_div.checkReg(9, 0xffe8999d);
   basic_div.perform_test(testCPU, testMem);

@@ -43,6 +43,8 @@ mips_error mips_cpu_reset(mips_cpu_h state){
   state->hi = 0;
   state->lo = 0;
 
+  state->delaySlot = 0;
+
   return mips_Success;
 }
 
@@ -146,6 +148,14 @@ mips_error mips_cpu_step(mips_cpu_h state){
     return attemptRead;
   }
 
+  if (state->delaySlot > 0){
+    // We are in the delay slot people! It finally happened.
+    mips_cpu_set_pc(state, state->delaySlot);
+    state->delaySlot = 0;
+  } else {
+    advance_pc(state, 4);
+  }
+
   // u for undefined instruction
   instruction_impl nextInstruction = instruction_impl(instructionData, 'u');
 
@@ -195,9 +205,6 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
   mips_cpu_get_register(state, instrR.source1, &op1);
   mips_cpu_get_register(state, instrR.source2, &op2);
 
-  // Advance the program counter
-  advance_pc(state, 4);
-
   uint32_t oldPc;
   mips_cpu_get_pc(state, &oldPc);
 
@@ -233,8 +240,8 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 9:
       // jalr
-      mips_cpu_set_register(state, instrR.dest, oldPc + 4);
-      return mips_cpu_set_pc(state, op1);
+      state->delaySlot = op1;
+      return mips_cpu_set_register(state, instrR.dest, oldPc + 4);
       break;
     case 12:
       // syscall

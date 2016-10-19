@@ -54,6 +54,8 @@ struct mips_cpu_impl{
 
   uint32_t registers[32];
 
+  uint32_t delaySlot = 0;
+
   uint32_t pc;
 
   uint32_t hi;
