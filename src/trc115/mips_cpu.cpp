@@ -116,9 +116,10 @@ mips_error mips_cpu_set_debug_level(
   unsigned level,
   FILE *dest)
 {
-  if (state == NULL){
+  if (state == NULL || dest == NULL){
     return mips_ErrorInvalidHandle;
   }
+
   state->debugLevel = level;
   state->debugDest = dest;
 
@@ -148,15 +149,6 @@ mips_error mips_cpu_step(mips_cpu_h state){
     return attemptRead;
   }
 
-  if (state->delaySlot > 0){
-    cout << "DELAY SLOT ALERT" << endl;
-    // We are in the delay slot people! It finally happened.
-    mips_cpu_set_pc(state, state->delaySlot);
-    state->delaySlot = 0;
-  } else {
-    advance_pc(state, 4);
-  }
-
   // u for undefined instruction
   instruction_impl nextInstruction = instruction_impl(instructionData, 'u');
 
@@ -169,10 +161,23 @@ mips_error mips_cpu_step(mips_cpu_h state){
     }
   }
 
-  // cout << bitset<32>(nextInstruction.data) << endl;
-  // cout << unsigned(nextInstruction.opCode) << endl;
+  if(state->debugLevel >= 1){
+      fprintf(state->debugDest, "About to execute '%c' type instruction at program counter = %d\n", nextInstruction.type, state->pc);
+  }
 
-  // advancing the pc now means if there is a branch, subtract 4 from that
+  if(state->debugLevel >= 2){
+    fprintf(state->debugDest, "Prior register values: (signed decimal)\n");
+    for (unsigned i = 0; i < 32; i++){
+      fprintf(state->debugDest, "R%d = %d\n",i, state->registers[i]);
+    }
+  }
+
+  if (state->delaySlot > 0){
+    mips_cpu_set_pc(state, state->delaySlot);
+    state->delaySlot = 0;
+  } else {
+    advance_pc(state, 4);
+  }
 
   switch(nextInstruction.type){
     case 'r':
@@ -199,6 +204,16 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
 
   // Create an instance of instruction_impl_r from the raw data from instruction
   instruction_impl_r instrR = instruction_impl_r(instruction.data);
+
+  if(state->debugLevel >= 2){
+    fprintf(state->debugDest, "Raw Instruction = %d\n", instrR.data);
+    fprintf(state->debugDest, "Source1 = R%d\n", instrR.source1);
+    fprintf(state->debugDest, "Source2 = R%d\n", instrR.source2);
+    fprintf(state->debugDest, "Destination = R%d\n", instrR.dest);
+    fprintf(state->debugDest, "Shift = %d\n", instrR.shift);
+    fprintf(state->debugDest, "Function Code = %d\n", instrR.function);
+
+  }
 
   // The two operands corresponding to source1 and source2
   uint32_t op1 = 0;
@@ -271,37 +286,25 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       state->lo = op1;
       return mips_Success;
       break;
-    case 24:{
-      int64_t op1s = op1;
-      int64_t op2s = op2;
-      // mult
-      if (op1 & 0x80000000){
-        // op1 is negative, do a sign extension
-        op1s = 0xFFFFFFFF00000000 | op1;
-      }
-      if (op2 & 0x80000000){
-        // op2 is negative, do a sign extension
-        op2s = 0xFFFFFFFF00000000 | op2;
-      }
-      int64_t result = op1s * op2s;
-      state->hi = uint32_t(result >> 32);
-      state->lo = uint32_t(result);
+    case 24:
+      // sign extend the operands then calculate the result
+      state->hi = uint32_t((int64_t((int64_t(op1) << 32) >> 32) * int64_t((int64_t(op2) << 32) >> 32)) >> 32);
+      state->lo = uint32_t(int64_t((int64_t(op1) << 32) >> 32) * int64_t((int64_t(op2) << 32) >> 32));
       return mips_Success;
-      break;}
-    case 25:{
+      break;
+    case 25:
       // multu
-      uint64_t result = uint64_t(op1) * uint64_t(op2);
-      state->hi = uint32_t(result >> 32);
-      state->lo = uint32_t(result);
+      state->hi = uint32_t((uint64_t(op1) * uint64_t(op2)) >> 32);
+      state->lo = uint32_t(uint64_t(op1) * uint64_t(op2));
       return mips_Success;
-      break;}
+      break;
     case 26:
       // div
       if (op2 == 0){
         return mips_ExceptionInvalidInstruction;
       }
-      state->lo = signed(op1) / signed(op2);
-      state->hi = signed(op1) % signed(op2);
+      state->lo = int32_t(op1) / int32_t(op2);
+      state->hi = int32_t(op1) % int32_t(op2);
       return mips_Success;
       break;
     case 27:
@@ -313,37 +316,47 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       state->hi = op1 % op2;
       return mips_Success;
       break;
-    case 32:
-      // add
-      return mips_ErrorNotImplemented;
-      break;
+    case 32:{
+      if(((int32_t(op1) > 0) && (int32_t(op2) > 0) && (int32_t(op1) + int32_t(op2) <= 0)) ||
+        ((int32_t(op1) < 0) && (int32_t(op2) < 0) && (int32_t(op1) + int32_t(op2) >= 0))){
+        // If both operands are +ve and result is -ve
+        // OR If both operands are -ve and result is +ve
+        return mips_ExceptionArithmeticOverflow;
+      }
+      return mips_cpu_set_register(state, instrR.dest, int32_t(op1) + int32_t(op2));
+      break;}
     case 33:
       // addu
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op1 + op2);
       break;
-    case 34:
-      // sub
-      return mips_ErrorNotImplemented;
-      break;
+    case 34:{
+      if(((int32_t(op1) < 0) && (int32_t(op2) > 0) && (int32_t(op1) - int32_t(op2) >= 0)) ||
+        ((int32_t(op1) > 0) && (int32_t(op2) < 0) && (int32_t(op1) - int32_t(op2) <= 0))){
+        // If op1 -ve, op2 +ve, result +ve
+        // OR If op1 +ve, op2 -ve, result -ve
+        return mips_ExceptionArithmeticOverflow;
+      }
+      return mips_cpu_set_register(state, instrR.dest, int32_t(op1) - int32_t(op2));
+      break;}
     case 35:
       // subu
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op1 - op2);
       break;
     case 36:
       // and
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op1 & op2);
       break;
     case 37:
       // or
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op1 | op2);
       break;
     case 38:
       // xor
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, op1 ^ op2);
       break;
     case 39:
       // nor
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrR.dest, ~(op1 | op2));
       break;
     default:
       // If not any of the above cases, the instruction is invalid

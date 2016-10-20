@@ -31,9 +31,7 @@ struct test{
   const char* testName;
   const char* testDescription;
   unsigned numInstructions;
-  vector<memory_state> memWrite;
   vector<memory_state> memCheck;
-  vector<register_state> regWrite;
   vector<register_state> regCheck;
 
   // Constructor for test
@@ -47,14 +45,6 @@ struct test{
 
   mips_error perform_test(mips_cpu_h state, mips_mem_h mem);
 
-  void writeMem(uint32_t address, uint32_t value){
-    memWrite.push_back(memory_state(address, value));
-  }
-
-  void writeReg(uint8_t index, uint32_t value){
-    regWrite.push_back(register_state(index, value));
-  }
-
   void checkMem(uint32_t address, uint32_t value){
     memCheck.push_back(memory_state(address, value));
   }
@@ -65,3 +55,5 @@ struct test{
 };
 
 uint32_t get_pc(mips_cpu_h state);
+void writeMem(mips_mem_h mem, uint32_t address, uint32_t value);
+void writeReg(mips_cpu_h state, uint8_t index, uint32_t value);
