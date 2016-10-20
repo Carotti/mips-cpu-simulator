@@ -57,21 +57,26 @@ int main(){
   basic_srav.checkReg(10, 5);
   basic_srav.perform_test(testCPU, testMem);
 
-  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged", 1);
+  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged", 2);
   basic_jr.writeMem(get_pc(testCPU), instruction_impl_r(9, 0, 0, 0, 8).data);
+  // R8 = R9 >> 1 in the branch delay slot
+  basic_jr.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 9, 8, 1, 2).data);
   basic_jr.writeReg(9, 0x000000A4);
   basic_jr.checkReg(255, 0x000000A4);
+  basic_jr.checkReg(8, 0x00000052);
   basic_jr.checkReg(9, 0x000000A4);
   basic_jr.perform_test(testCPU, testMem);
 
-  test basic_jalr("jalr", "Verify that pc = R9, R1 = R9 + 8 and R9 unchanged", 1);
+  test basic_jalr("jalr", "Verify that pc = R9, R1 = R9 + 8 and R9 unchanged", 2);
   basic_jalr.writeMem(get_pc(testCPU), instruction_impl_r(9, 0, 31, 0, 9).data);
+  // R8 = R9 >> 1 in the branch delay slot
+  basic_jalr.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 9, 8, 1, 2).data);
   basic_jalr.checkReg(9, 0x000000A4);
   basic_jalr.checkReg(255, 0x000000A4);
   basic_jalr.checkReg(31, 0x000000AC);
   basic_jalr.perform_test(testCPU, testMem);
 
-  // TODO: Add nops since 2 instructions before mult/divide can't be mfhi or mflo
+  // nops after since that behaviour is "undefined"
   test basic_multu("multu", "Verify values of hi and lo after R10 * R11", 5);
   basic_multu.writeMem(get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 25).data);
   basic_multu.writeMem(get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);

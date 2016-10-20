@@ -149,6 +149,7 @@ mips_error mips_cpu_step(mips_cpu_h state){
   }
 
   if (state->delaySlot > 0){
+    cout << "DELAY SLOT ALERT" << endl;
     // We are in the delay slot people! It finally happened.
     mips_cpu_set_pc(state, state->delaySlot);
     state->delaySlot = 0;
@@ -236,7 +237,8 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 8:
       // jr
-      return mips_cpu_set_pc(state, op1);
+      state->delaySlot = op1;
+      return mips_Success;
       break;
     case 9:
       // jalr
