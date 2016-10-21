@@ -12,7 +12,7 @@ struct instruction_impl{
   // Only used for an 'actual' function rather than instruction set member
   uint32_t data;
 
-  // Constructor for instruction_impl without rFunction defined
+  // Constructor for instruction_impl used by the instruction set
   instruction_impl(char typeIn, uint8_t opCodeIn):
     type(typeIn),
     opCode(opCodeIn),
@@ -51,7 +51,7 @@ struct instruction_impl_r : public instruction_impl{
     uint8_t functionIn):
       instruction_impl(
         uint32_t(
-          ((uint32_t(source1In) & 0x0000001F) << 21) |
+          0x00000000 | ((uint32_t(source1In) & 0x0000001F) << 21) |
           ((uint32_t(source2In) & 0x0000001F) << 16) |
           ((uint32_t(destIn) & 0x0000001F) << 11) |
           ((uint32_t(shiftIn) & 0x0000001F) << 6) |
@@ -66,10 +66,40 @@ struct instruction_impl_r : public instruction_impl{
 
 // Used for J type instructions, inherits the generic function type
 struct instruction_impl_j: public instruction_impl{
+  uint32_t address;
 
+  // Constructor with just the data
+  instruction_impl_j(uint32_t dataIn):
+    instruction_impl(dataIn, 'j'),
+    address(dataIn & 0x03FFFFFF){}
+
+  instruction_impl_j(uint8_t opCodeIn, uint32_t addressIn):
+    instruction_impl(uint32_t(((uint32_t(opCodeIn) & 0x0000003F) << 26) | (addressIn & 0x03FFFFFF)), 'j'){}
 };
 
 // Used for I type instructions, inherits the generic function type
 struct instruction_impl_i: public instruction_impl{
+  uint8_t source;
+  uint8_t dest;
+  uint16_t immediate;
 
+  // Constructor with just the data
+  instruction_impl_i(uint32_t dataIn):
+    instruction_impl(dataIn, 'i'),
+    source(uint8_t((dataIn & 0x03E00000) >> 21)),
+    dest(uint8_t((dataIn & 0x001F0000) >> 16)),
+    immediate(uint16_t((dataIn & 0x0000FFFF))){}
+
+  // Constructor specifying each part of the instruction
+  instruction_impl_i(uint8_t opCodeIn, uint8_t sourceIn, uint8_t destIn, uint16_t immediateIn):
+    instruction_impl(
+      uint32_t(
+        0x00000000 | ((uint32_t(opCodeIn) & 0x0000003F) << 26) |
+        ((uint32_t(sourceIn) & 0x0000001F) << 21) |
+        ((uint32_t(destIn) & 0x0000001F) << 16) |
+        (uint32_t(immediateIn))),
+      'i'),
+    source(sourceIn),
+    dest(destIn),
+    immediate(immediateIn){}
 };

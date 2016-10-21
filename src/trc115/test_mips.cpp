@@ -150,8 +150,6 @@ int main(){
   mips_cpu_reset(testCPU);
   cpu_reset.perform_test(testCPU, testMem);
 
-  mips_cpu_set_debug_level(testCPU, 2, stderr);
-
   test basic_add("add", "Verify the result of an add with no overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 32).data);
   writeReg(testCPU, 9, 0x0BB8BB8F);

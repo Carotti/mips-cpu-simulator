@@ -162,13 +162,14 @@ mips_error mips_cpu_step(mips_cpu_h state){
   }
 
   if(state->debugLevel >= 1){
-      fprintf(state->debugDest, "About to execute '%c' type instruction at program counter = %d\n", nextInstruction.type, state->pc);
+    fprintf(state->debugDest, "--------------------------------------\n");
+    fprintf(state->debugDest, "About to execute '%c' type instruction\nProgram counter = %d\n", nextInstruction.type, state->pc);
   }
 
   if(state->debugLevel >= 2){
     fprintf(state->debugDest, "Prior register values: (signed decimal)\n");
     for (unsigned i = 0; i < 32; i++){
-      fprintf(state->debugDest, "R%d = %d\n",i, state->registers[i]);
+      fprintf(state->debugDest, "    R%d\t= %d\n",i, state->registers[i]);
     }
   }
 
@@ -212,7 +213,6 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
     fprintf(state->debugDest, "Destination = R%d\n", instrR.dest);
     fprintf(state->debugDest, "Shift = %d\n", instrR.shift);
     fprintf(state->debugDest, "Function Code = %d\n", instrR.function);
-
   }
 
   // The two operands corresponding to source1 and source2
@@ -365,13 +365,76 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
 }
 
 mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
+  // Create an instance of instruction_impl_j from the raw data from instruction
+  instruction_impl_j instrJ = instruction_impl_j(instruction.data);
 
+  if(state->debugLevel >= 2){
+    fprintf(state->debugDest, "Raw Instruction = %d\n", instrJ.data);
+    fprintf(state->debugDest, "OpCode = %d\n", instrJ.opCode);
+    fprintf(state->debugDest, "Address = %d", instrJ.address);
+  }
+
+  uint32_t oldPc;
+  mips_cpu_get_pc(state, &oldPc);
+
+  // Both j and jal instructions do the following
+  state->delaySlot = (oldPc & 0xF0000000) | ((instrJ.address & 0x03FFFFFF) << 2);
+
+  if (instrJ.opCode == 3){
+    // jal instruction, set return address
+    uint32_t oldPc;
+    mips_cpu_get_pc(state, &oldPc);
+    mips_cpu_set_register(state, 31, oldPc + 4);
+  }
   return mips_Success;
 }
 
 mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
+  // Create an instance of instruction_impl_i from the raw data from instruction
+  instruction_impl_i instrI = instruction_impl_i(instruction.data);
+  if(state->debugLevel >= 2){
+    fprintf(state->debugDest, "Raw Instruction = %d\n", instrI.data);
+    fprintf(state->debugDest, "Source = R%d\n", instrI.source);
+    fprintf(state->debugDest, "Destination = R%d\n", instrI.dest);
+    fprintf(state->debugDest, "Immediate = %d\n", instrI.immediate);
+  }
 
-  return mips_Success;
+  // The two operands corresponding to source1 and source2
+  uint32_t op1 = 0;
+  mips_cpu_get_register(state, instrI.source, &op1);
+
+  uint32_t oldPc;
+  mips_cpu_get_pc(state, &oldPc);
+
+  switch(instrI.opCode){
+    case 2:
+      // bltz, bgez, bltzal OR bgezal
+      if (instrI.dest == 0 || instrI.dest == 16){
+        // bltz, or bltzal
+        if (signed(op1) < 0){
+          // Sign extend offset to 32 bit and shift left twice
+          state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+        }
+      } else if (instrI.dest == 1 || instrI.dest == 17){
+        // bgez or bgezal
+        if (signed(op1) >= 0){
+          state->delaySlot = instrI.immediate;
+        }
+      }
+    case 4:
+      // beq
+      break;
+    case 5:
+      // bne
+      break;
+    case 6:
+      // blez
+    default:
+      // This path will never be taken..
+      return mips_ExceptionInvalidInstruction;
+      break;
+  }
+
 }
 
 void advance_pc(mips_cpu_h state, int offset){
