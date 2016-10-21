@@ -421,6 +421,8 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   // The two operands corresponding to source1 and source2
   uint32_t op1 = 0;
   mips_cpu_get_register(state, instrI.source, &op1);
+  uint32_t op2 = 0;
+  mips_cpu_get_register(state, instrI.dest, &op2);
 
   uint32_t oldPc;
   mips_cpu_get_pc(state, &oldPc);
@@ -449,43 +451,55 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       return mips_Success;
     case 4:
       // beq
-      if (instrI.source == instrI.dest){
+      if (op1 == op2){
         state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
       }
       return mips_Success;
       break;
     case 5:
       // bne
-      if (instrI.source != instrI.dest){
+      if (op1 != op2){
         state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
       }
       return mips_Success;
       break;
     case 6:
       // blez
-      if (signed(instrI.source) <= 0){
+      if (signed(op1) <= 0){
         state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
       }
       return mips_Success;
       break;
     case 7:
       // bgtz
-      if (signed(instrI.source) > 0){
+      if (signed(op1) > 0){
         state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
       }
       return mips_Success;
       break;
     case 8:
       // addi
-      return mips_ErrorNotImplemented;
+      // Sign extend the immediate into op2
+      op2 = (int32_t(instrI.immediate << 16) >> 16);
+      if(((int32_t(op1) > 0) && (int32_t(op2) > 0) && (int32_t(op1) + int32_t(op2) <= 0)) ||
+        ((int32_t(op1) < 0) && (int32_t(op2) < 0) && (int32_t(op1) + int32_t(op2) >= 0))){
+        // If both operands are +ve and result is -ve
+        // OR If both operands are -ve and result is +ve
+        return mips_ExceptionArithmeticOverflow;
+      }
+      return mips_cpu_set_register(state, instrI.dest, int32_t(op1) + int32_t(op2));
       break;
     case 9:
       // addiu
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, op1 + instrI.immediate);
       break;
     case 10:
-      // sltiu
-      return mips_ErrorNotImplemented;
+      // slti
+      if (int32_t(op1) < (int32_t(instrI.immediate << 16) >> 16)){
+        return mips_cpu_set_register(state, instrI.dest, 1);
+      } else {
+        return mips_cpu_set_register(state, instrI.dest, 0);
+      }
       break;
     case 11:
       // sltiu

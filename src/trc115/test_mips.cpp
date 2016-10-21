@@ -294,6 +294,7 @@ int main(){
   test addu_overflow("addu", "Verify that addu result valid even with overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 33).data);
   writeReg(testCPU, 9, 0xF374BAB3);
+  writeReg(testCPU, 10, 0x3A947118);
   addu_overflow.checkReg(8, 0x2E092BCB);
 
   mips_error overflowErrorAddu = addu_overflow.perform_test(testCPU, testMem);
@@ -426,7 +427,7 @@ int main(){
   jal_basic.perform_test(testCPU, testMem);
 
   test bltz_basic_no("bltz", "Check that branch isn't taken if source register is equal to 0. Also check that source isn't changed", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0);
   bltz_basic_no.checkReg(8, 0);
@@ -434,7 +435,7 @@ int main(){
   bltz_basic_no.perform_test(testCPU, testMem);
 
   test bltz_basic_noPos("bltz", "Check that branch isn't taken if source register is > 0. Also check that source isn't changed", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0x1349DE40);
   bltz_basic_noPos.checkReg(8, 0x1349DE40);
@@ -466,7 +467,7 @@ int main(){
   bgez_basic_yesPos.perform_test(testCPU, testMem);
 
   test bgez_basic_no("bgez", "Check that branch isn't taken if source register is < 0. Also check that source isn't changed", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 1, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 1, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0x8349DE40);
   bgez_basic_no.checkReg(8, 0x8349DE40);
@@ -474,7 +475,7 @@ int main(){
   bgez_basic_no.perform_test(testCPU, testMem);
 
   test bltzal_basic_no("bltzal", "Check that branch isn't taken if source register is equal to 0. Also check that source isn't changed and the return address is set", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0);
   bltzal_basic_no.checkReg(8, 0);
@@ -483,7 +484,7 @@ int main(){
   bltzal_basic_no.perform_test(testCPU, testMem);
 
   test bltzal_basic_noPos("bltzal", "Check that branch isn't taken if source register is > 0. Also check that source isn't changed and the return address is set", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0x1349DE40);
   bltzal_basic_noPos.checkReg(8, 0x1349DE40);
@@ -519,13 +520,160 @@ int main(){
   bgezal_basic_yesPos.perform_test(testCPU, testMem);
 
   test bgezal_basic_no("bgezal", "Check that branch isn't taken if source register is < 0. Also check that source isn't changed and the return address is set", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 17, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 17, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0x8349DE40);
   bgezal_basic_no.checkReg(8, 0x8349DE40);
   bgezal_basic_no.checkReg(255, get_pc(testCPU) + 8);
   bgezal_basic_no.checkReg(31, get_pc(testCPU) + 8);
   bgezal_basic_no.perform_test(testCPU, testMem);
+
+  test beq_no("beq", "Check that branch isn't taken if source register != destination register. Also check that source, destination aren't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(4, 8, 9, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0xBA11DEEE);
+  writeReg(testCPU, 9, 0xEEED11AB);
+  beq_no.checkReg(8, 0xBA11DEEE);
+  beq_no.checkReg(9, 0xEEED11AB);
+  beq_no.checkReg(255, get_pc(testCPU) + 8);
+  beq_no.perform_test(testCPU, testMem);
+
+  test bne_yes("bne", "Check that branch is taken if source register != destination register. Also check that source, destination aren't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(5, 8, 9, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0xBA11DEEE);
+  writeReg(testCPU, 9, 0xEEED11AB);
+  bne_yes.checkReg(8, 0xBA11DEEE);
+  bne_yes.checkReg(9, 0xEEED11AB);
+  bne_yes.checkReg(255, get_pc(testCPU) - 36);
+  bne_yes.perform_test(testCPU, testMem);
+
+  test beq_yes("beq", "Check that branch is taken if source register = destination register. Also check that source, destination aren't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(4, 8, 9, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x1EAFEEEE);
+  writeReg(testCPU, 9, 0x1EAFEEEE);
+  beq_yes.checkReg(8, 0x1EAFEEEE);
+  beq_yes.checkReg(9, 0x1EAFEEEE);
+  beq_yes.checkReg(255, get_pc(testCPU) - 36);
+  beq_yes.perform_test(testCPU, testMem);
+
+  test bne_no("bne", "Check that the branch isn't taken if source register = destination register. Also check that source, destination aren't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(5, 8, 9, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x1EAFEEEE);
+  writeReg(testCPU, 9, 0x1EAFEEEE);
+  bne_no.checkReg(8, 0x1EAFEEEE);
+  bne_no.checkReg(9, 0x1EAFEEEE);
+  bne_no.checkReg(255, get_pc(testCPU) + 8);
+  bne_no.perform_test(testCPU, testMem);
+
+  test blez_yes("blez", "Check that the branch is taken if source < 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(6, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x80009D04);
+  blez_yes.checkReg(8, 0x80009D04);
+  blez_yes.checkReg(255, get_pc(testCPU) - 36);
+  blez_yes.perform_test(testCPU, testMem);
+
+  test blez_yesZero("blez", "Check that the branch is taken if source = 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(6, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0);
+  blez_yesZero.checkReg(8, 0);
+  blez_yesZero.checkReg(255, get_pc(testCPU) - 36);
+  blez_yesZero.perform_test(testCPU, testMem);
+
+  test blez_no("blez", "Check that the branch isn't taken if source > 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(6, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x333F125A);
+  blez_no.checkReg(8, 0x333F125A);
+  blez_no.checkReg(255, get_pc(testCPU) + 8);
+  blez_no.perform_test(testCPU, testMem);
+
+  test bgtz_no("bgtz", "Check that the branch isn't taken if source < 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(7, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x80009D04);
+  bgtz_no.checkReg(8, 0x80009D04);
+  bgtz_no.checkReg(255, get_pc(testCPU) + 8);
+  bgtz_no.perform_test(testCPU, testMem);
+
+  test bgtz_noZero("bgtz", "Check that the branch isn't taken if source = 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(7, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0);
+  bgtz_noZero.checkReg(8, 0);
+  bgtz_noZero.checkReg(255, get_pc(testCPU) + 8);
+  bgtz_noZero.perform_test(testCPU, testMem);
+
+  test bgtz_yes("bgtz", "Check that the branch is taken if source > 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(7, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x333F125A);
+  bgtz_yes.checkReg(8, 0x333F125A);
+  bgtz_yes.checkReg(255, get_pc(testCPU) - 36);
+  bgtz_yes.perform_test(testCPU, testMem);
+
+  test basic_addi("addi", "Verify the result of an addi where there is no overflow", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(8, 9, 8, 0x034D).data);
+  writeReg(testCPU, 9, 0x0BB8BB8F);
+  basic_addi.checkReg(8, 0x0BB8BEDC);
+  basic_addi.perform_test(testCPU, testMem);
+
+  writeReg(testCPU, 8, 0xFAFAFAFA);
+  test addi_overflow_pos("addi", "Check that dest register doesn't change if positive overflow occurs in addi", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(8, 9, 8, 0x734D).data);
+  writeReg(testCPU, 9, 0x7FFFFBCD);
+  addi_overflow_pos.checkReg(8, 0xFAFAFAFA);
+
+  mips_error overflowErrorAddiPos = addi_overflow_pos.perform_test(testCPU, testMem);
+  int overflowTestAddiPos =  mips_test_begin_test("addi");
+  if (overflowErrorAddiPos == mips_ExceptionArithmeticOverflow){
+    mips_test_end_test(overflowTestAddiPos, 1, "Check for Overflow Exception on adding +ve");
+  } else {
+    mips_test_end_test(overflowTestAddiPos, 0, "Check for Overflow Exception on adding +ve");
+  }
+
+  writeReg(testCPU, 8, 0xFAFAFAFA);
+  test addi_overflow_neg("addi", "Check that dest register doesn't change if negative overflow occurs in addi", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(8, 9, 8, 0x8003).data);
+  writeReg(testCPU, 9, 0x80000014);
+  addi_overflow_neg.checkReg(8, 0xFAFAFAFA);
+
+  mips_error overflowErrorAddiNeg = addi_overflow_neg.perform_test(testCPU, testMem);
+  int overflowTestAddiNeg =  mips_test_begin_test("addi");
+  if (overflowErrorAddiNeg == mips_ExceptionArithmeticOverflow){
+    mips_test_end_test(overflowTestAddiNeg, 1, "Check for Overflow Exception on adding -ve");
+  } else {
+    mips_test_end_test(overflowTestAddiNeg, 0, "Check for Overflow Exception on adding -ve");
+  }
+
+  test basic_addiu("addiu", "Verify the result of addiu with no overflow", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0xABCD).data);
+  writeReg(testCPU, 9, 0x1374BAB3);
+  basic_addiu.checkReg(8, 0x13756680);
+  basic_addiu.perform_test(testCPU, testMem);
+
+  test addiu_overflow("addiu", "Verify that addiu result valid even with overflow", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0xABCD).data);
+  writeReg(testCPU, 9, 0xFFFFFAB3);
+  addiu_overflow.checkReg(8, 0x0000A680);
+
+  mips_error overflowErrorAddiu = addiu_overflow.perform_test(testCPU, testMem);
+  int overflowTestAddiu = mips_test_begin_test("addiu");
+  if (overflowErrorAddiu == mips_Success){
+    // Addu working correctly, doesn't return overflow (or any other) error
+    mips_test_end_test(overflowTestAddiu, 1, "Check addiu overflowing doesn't produce exception");
+  } else {
+    mips_test_end_test(overflowTestAddiu, 0, "Check addiu overflowing doesn't produce exception");
+  }
+
+
+
+
+
 
   mips_mem_free(testMem);
   testMem = NULL;
