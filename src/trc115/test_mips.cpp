@@ -449,21 +449,83 @@ int main(){
   bltz_basic_yes.checkReg(255, get_pc(testCPU) - 36);
   bltz_basic_yes.perform_test(testCPU, testMem);
 
-  test bgez_basic_no("bgez", "Check that branch isn't taken if source register is < 0. Also check that source isn't changed", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF1).data);
+  test bgez_basic_yesZero("bgez", "Check that branch is taken if source register is = 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 1, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0);
-  bgez_basic_no.checkReg(8, 0);
+  bgez_basic_yesZero.checkReg(8, 0);
+  bgez_basic_yesZero.checkReg(255, get_pc(testCPU) - 36);
+  bgez_basic_yesZero.perform_test(testCPU, testMem);
+
+  test bgez_basic_yesPos("bgez", "Check that branch is taken if source register is > 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 1, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x3323);
+  bgez_basic_yesPos.checkReg(8, 0x3323);
+  bgez_basic_yesPos.checkReg(255, get_pc(testCPU) - 36);
+  bgez_basic_yesPos.perform_test(testCPU, testMem);
+
+  test bgez_basic_no("bgez", "Check that branch isn't taken if source register is < 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 1, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x8349DE40);
+  bgez_basic_no.checkReg(8, 0x8349DE40);
   bgez_basic_no.checkReg(255, get_pc(testCPU) + 8);
   bgez_basic_no.perform_test(testCPU, testMem);
 
-  test bgez_basic_yes("bgez", "Check that branch is taken if source register is 0. Also check that source isn't changed", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF6).data);
+  test bltzal_basic_no("bltzal", "Check that branch isn't taken if source register is equal to 0. Also check that source isn't changed and the return address is set", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0);
+  bltzal_basic_no.checkReg(8, 0);
+  bltzal_basic_no.checkReg(255, get_pc(testCPU) + 8);
+  bltzal_basic_no.checkReg(31, get_pc(testCPU) + 8);
+  bltzal_basic_no.perform_test(testCPU, testMem);
+
+  test bltzal_basic_noPos("bltzal", "Check that branch isn't taken if source register is > 0. Also check that source isn't changed and the return address is set", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x1349DE40);
+  bltzal_basic_noPos.checkReg(8, 0x1349DE40);
+  bltzal_basic_noPos.checkReg(255, get_pc(testCPU) + 8);
+  bltzal_basic_noPos.checkReg(31, get_pc(testCPU) + 8);
+  bltzal_basic_noPos.perform_test(testCPU, testMem);
+
+  test bltzal_basic_yes("bltzal", "Check that branch is taken if source register is < 0. Also check that source isn't changed and the return address is set", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 16, 0xFFF6).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
   writeReg(testCPU, 8, 0x80FAB131);
-  bltz_basic_yes.checkReg(8, 0x80FAB131);
-  bltz_basic_yes.checkReg(255, get_pc(testCPU) - 36);
-  bltz_basic_yes.perform_test(testCPU, testMem);
+  bltzal_basic_yes.checkReg(8, 0x80FAB131);
+  bltzal_basic_yes.checkReg(255, get_pc(testCPU) - 36);
+  bltzal_basic_yes.checkReg(31, get_pc(testCPU) + 8);
+  bltzal_basic_yes.perform_test(testCPU, testMem);
+
+  test bgezal_basic_yesZero("bgezal", "Check that branch is taken if source register is = 0. Also check that source isn't changed and the return address is set", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 17, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0);
+  bgezal_basic_yesZero.checkReg(8, 0);
+  bgezal_basic_yesZero.checkReg(255, get_pc(testCPU) - 36);
+  bgezal_basic_yesZero.checkReg(31, get_pc(testCPU) + 8);
+  bgezal_basic_yesZero.perform_test(testCPU, testMem);
+
+  test bgezal_basic_yesPos("bgezal", "Check that branch is taken if source register is > 0. Also check that source isn't changed and the return address is set", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 17, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x3323);
+  bgezal_basic_yesPos.checkReg(8, 0x3323);
+  bgezal_basic_yesPos.checkReg(255, get_pc(testCPU) - 36);
+  bgezal_basic_yesPos.checkReg(31, get_pc(testCPU) + 8);
+  bgezal_basic_yesPos.perform_test(testCPU, testMem);
+
+  test bgezal_basic_no("bgezal", "Check that branch isn't taken if source register is < 0. Also check that source isn't changed and the return address is set", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 17, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x8349DE40);
+  bgezal_basic_no.checkReg(8, 0x8349DE40);
+  bgezal_basic_no.checkReg(255, get_pc(testCPU) + 8);
+  bgezal_basic_no.checkReg(31, get_pc(testCPU) + 8);
+  bgezal_basic_no.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
