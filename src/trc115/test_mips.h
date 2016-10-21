@@ -33,6 +33,7 @@ struct test{
   unsigned numInstructions;
   vector<memory_state> memCheck;
   vector<register_state> regCheck;
+  int success;
 
   // Constructor for test
   test(
@@ -41,7 +42,9 @@ struct test{
     unsigned numInstructionsIn):
     testName(testNameIn),
     testDescription(testDescriptionIn),
-    numInstructions(numInstructionsIn){}
+    numInstructions(numInstructionsIn),
+    // -1 indicates test has not run, 0 is failure and 1 is pass
+    success(-1){}
 
   mips_error perform_test(mips_cpu_h state, mips_mem_h mem);
 

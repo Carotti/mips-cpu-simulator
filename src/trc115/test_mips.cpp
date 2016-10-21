@@ -9,6 +9,54 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(8192);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
+  // Check get and set for R1 to R31
+  for (unsigned i = 1; i < 32; i++){
+    test cpu_getSetReg("<internal>", "Verify that the value from a register is the same as the value the register was set to", 0);
+    writeReg(testCPU, i, 0xABCDEF12);
+    cpu_getSetReg.checkReg(i, 0xABCDEF12);
+    cpu_getSetReg.perform_test(testCPU, testMem);
+  }
+
+  test cpu_getSetPc("<internal>", "Verify that the program counter is the same as it was set to", 0);
+  writeReg(testCPU, 255, 404); // Joke: Program Counter not found?
+  cpu_getSetPc.checkReg(255, 404);
+  cpu_getSetPc.perform_test(testCPU, testMem);
+
+  test set_zero("<internal>", "Verify that R0 = 0 after an attempted set", 0);
+  writeReg(testCPU, 0, 0xABCDEF12);
+  set_zero.checkReg(0, 0);
+  set_zero.perform_test(testCPU, testMem);
+
+  test cpu_reset("<internal>", "Verify all regs and pc set to 0 after reset", 0);
+  // Example of using for loops to define a test -- Why it isn't from a file
+  for (unsigned i = 0; i < 32; i++){
+    // Set the value of each register to its index
+    writeReg(testCPU, i, i);
+    cpu_reset.checkReg(i, 0);
+  }
+  mips_cpu_reset(testCPU);
+  cpu_reset.perform_test(testCPU, testMem);
+
+  // Check that each combination of registers can be uses as source1, source2
+  // and dest - Yes this does 29,791 tests (Uses addu as simple instruction to implement)
+  // Could take this approach with every instruction but that would be OTT
+  for (unsigned r1 = 1; r1 < 32; r1++){
+    for (unsigned r2 = 1; r2 < 32; r2++){
+      for (unsigned r3 = 1; r3 < 32; r3 ++){
+        if(r2 != r3){
+          test basic_addu("<internal>", "Verify the result of addu with no overflow for each combination of source1, source2 and destination", 1);
+          writeMem(testMem, get_pc(testCPU), instruction_impl_r(r2, r3, r1, 0, 33).data);
+          writeReg(testCPU, r2, 0x1374BAB3);
+          writeReg(testCPU, r3, 0x3A947118);
+          basic_addu.checkReg(r1, 0x4E092BCB);
+          basic_addu.perform_test(testCPU, testMem);
+          // Reset CPU after each test to keep instruction executing in same memory location
+          mips_cpu_reset(testCPU);
+        }
+      }
+    }
+  }
+
   test basic_sll("sll", "Verify that R8 = R9 << 5 and R9 unchanged", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(0, 9, 8, 5, 0).data);
   writeReg(testCPU, 9, 0xFBABABAB);
@@ -109,6 +157,7 @@ int main(){
   basic_mult.checkReg(9, 0xE651FDAA);
   basic_mult.perform_test(testCPU, testMem);
 
+  // TODO: Test for divide by 0 error (check spec for behaviour...)
   test basic_divu("divu", "Check hi and lo after R10 / R11", 5);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
@@ -141,16 +190,7 @@ int main(){
   div_negop2.checkReg(9, 0xfff31e2e);
   div_negop2.perform_test(testCPU, testMem);
 
-  test cpu_reset("<internal>", "Verify all regs and pc set to 0 after reset", 0);
-  // Example of using for loops to define a test -- Why it isn't from a file
-  for (unsigned i = 0; i < 32; i++){
-    // Check the value of each register
-    cpu_reset.checkReg(i, 0);
-  }
-  mips_cpu_reset(testCPU);
-  cpu_reset.perform_test(testCPU, testMem);
-
-  test basic_add("add", "Verify the result of an add with no overflow", 1);
+  test basic_add("add", "Verify the result of an add where there is no overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 32).data);
   writeReg(testCPU, 9, 0x0BB8BB8F);
   writeReg(testCPU, 10, 0x00AAA1C1);
@@ -164,12 +204,12 @@ int main(){
   writeReg(testCPU, 10, 0x71649BCD);
   add_overflow_pos.checkReg(8, 0xFAFAFAFA);
 
-  mips_error overflowErrorPos = add_overflow_pos.perform_test(testCPU, testMem);
-  int overflowTestPos =  mips_test_begin_test("add");
-  if (overflowErrorPos == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestPos, 1, "Check for Overflow Exception on adding +ve");
+  mips_error overflowErrorAddPos = add_overflow_pos.perform_test(testCPU, testMem);
+  int overflowTestAddPos =  mips_test_begin_test("add");
+  if (overflowErrorAddPos == mips_ExceptionArithmeticOverflow){
+    mips_test_end_test(overflowTestAddPos, 1, "Check for Overflow Exception on adding +ve");
   } else {
-    mips_test_end_test(overflowTestPos, 0, "Check for Overflow Exception on adding +ve");
+    mips_test_end_test(overflowTestAddPos, 0, "Check for Overflow Exception on adding +ve");
   }
 
   writeReg(testCPU, 8, 0xFAFAFAFA);
@@ -179,12 +219,33 @@ int main(){
   writeReg(testCPU, 10, 0xF1649BCD);
   add_overflow_neg.checkReg(8, 0xFAFAFAFA);
 
-  mips_error overflowErrorNeg = add_overflow_neg.perform_test(testCPU, testMem);
-  int overflowTestNeg =  mips_test_begin_test("add");
-  if (overflowErrorNeg == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestNeg, 1, "Check for Overflow Exception on adding -ve");
+  mips_error overflowErrorAddNeg = add_overflow_neg.perform_test(testCPU, testMem);
+  int overflowTestAddNeg =  mips_test_begin_test("add");
+  if (overflowErrorAddNeg == mips_ExceptionArithmeticOverflow){
+    mips_test_end_test(overflowTestAddNeg, 1, "Check for Overflow Exception on adding -ve");
   } else {
-    mips_test_end_test(overflowTestNeg, 0, "Check for Overflow Exception on adding -ve");
+    mips_test_end_test(overflowTestAddNeg, 0, "Check for Overflow Exception on adding -ve");
+  }
+
+  test basic_addu("addu", "Verify the result of addu with no overflow", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 33).data);
+  writeReg(testCPU, 9, 0x1374BAB3);
+  writeReg(testCPU, 10, 0x3A947118);
+  basic_addu.checkReg(8, 0x4E092BCB);
+  basic_addu.perform_test(testCPU, testMem);
+
+  test addu_overflow("addu", "Verify that addu result valid even with overflow", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 33).data);
+  writeReg(testCPU, 9, 0xF374BAB3);
+  addu_overflow.checkReg(8, 0x2E092BCB);
+
+  mips_error overflowErrorAddu = addu_overflow.perform_test(testCPU, testMem);
+  int overflowTestAddu = mips_test_begin_test("addu");
+  if (overflowErrorAddu == mips_Success){
+    // Addu working correctly, doesn't return overflow (or any other) error
+    mips_test_end_test(overflowTestAddu, 1, "Check addu overflowing doesn't produce exception");
+  } else {
+    mips_test_end_test(overflowTestAddu, 0, "Check addu overflowing doesn't produce exception");
   }
 
   mips_mem_free(testMem);
@@ -208,7 +269,9 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
   mips_error lastError = mips_Success;
 
   int testID = mips_test_begin_test(testName);
-  int success = 1;
+
+  // Assume the test passes
+  success = 1;
 
   // Make the CPU perform the required number of instructions for the test
   for(unsigned i = 0; i < numInstructions; i++){

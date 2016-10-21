@@ -316,7 +316,8 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       state->hi = op1 % op2;
       return mips_Success;
       break;
-    case 32:{
+    case 32:
+      // add
       if(((int32_t(op1) > 0) && (int32_t(op2) > 0) && (int32_t(op1) + int32_t(op2) <= 0)) ||
         ((int32_t(op1) < 0) && (int32_t(op2) < 0) && (int32_t(op1) + int32_t(op2) >= 0))){
         // If both operands are +ve and result is -ve
@@ -324,12 +325,13 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
         return mips_ExceptionArithmeticOverflow;
       }
       return mips_cpu_set_register(state, instrR.dest, int32_t(op1) + int32_t(op2));
-      break;}
+      break;
     case 33:
       // addu
       return mips_cpu_set_register(state, instrR.dest, op1 + op2);
       break;
-    case 34:{
+    case 34:
+      // sub
       if(((int32_t(op1) < 0) && (int32_t(op2) > 0) && (int32_t(op1) - int32_t(op2) >= 0)) ||
         ((int32_t(op1) > 0) && (int32_t(op2) < 0) && (int32_t(op1) - int32_t(op2) <= 0))){
         // If op1 -ve, op2 +ve, result +ve
@@ -337,7 +339,7 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
         return mips_ExceptionArithmeticOverflow;
       }
       return mips_cpu_set_register(state, instrR.dest, int32_t(op1) - int32_t(op2));
-      break;}
+      break;
     case 35:
       // subu
       return mips_cpu_set_register(state, instrR.dest, op1 - op2);
@@ -414,21 +416,137 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
         if (signed(op1) < 0){
           // Sign extend offset to 32 bit and shift left twice
           state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+          if(instrI.dest == 16){
+            // bltzal
+            mips_cpu_set_register(state, 31, oldPc + 4);
+          }
         }
       } else if (instrI.dest == 1 || instrI.dest == 17){
         // bgez or bgezal
         if (signed(op1) >= 0){
-          state->delaySlot = instrI.immediate;
+          state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+          if(instrI.dest == 17){
+            // bgezal
+            mips_cpu_set_register(state, 31, oldPc + 4);
+          }
         }
       }
+      return mips_Success;
     case 4:
       // beq
+      if (instrI.source == instrI.dest){
+        state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+      }
+      return mips_Success;
       break;
     case 5:
       // bne
+      if (instrI.source != instrI.dest){
+        state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+      }
+      return mips_Success;
       break;
     case 6:
       // blez
+      if (signed(instrI.source) <= 0){
+        state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+      }
+      return mips_Success;
+      break;
+    case 7:
+      // bgtz
+      if (signed(instrI.source) > 0){
+        state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
+      }
+      break;
+    case 8:
+      // addi
+      if(((int32_t(op1) > 0) && (int32_t(int32_t(instrI.immediate) << 16) >> 16) > 0)
+        && (int32_t(op1) + int32_t(int32_t(instrI.immediate) << 16) >> 16) <= 0)) ||
+        ((int32_t(op1) < 0) && (int32_t(int32_t(instrI.immediate) << 16) >> 16) < 0)
+        && (int32_t(op1) + int32_t(int32_t(instrI.immediate) << 16) >> 16) >= 0))){
+        // If both operands are +ve and result is -ve
+        // OR If both operands are -ve and result is +ve
+        return mips_ExceptionArithmeticOverflow;
+      }
+      return mips_cpu_set_register(state, instrR.dest, int32_t(op1) + int32_t(int32_t(instrI.immediate) << 16) >> 16));
+      break;
+    case 9:
+      // addiu
+      return mips_ErrorNotImplemented;
+      break;
+    case 10:
+      // sltiu
+      return mips_ErrorNotImplemented;
+      break;
+    case 11:
+      // sltiu
+      return mips_ErrorNotImplemented;
+      break;
+    case 12:
+      // andi
+      return mips_ErrorNotImplemented;
+      break;
+    case 13:
+      // ori
+      return mips_ErrorNotImplemented;
+      break;
+    case 14:
+      // xori
+      return mips_ErrorNotImplemented;
+      break;
+    case 15:
+      // lui
+      return mips_ErrorNotImplemented;
+      break;
+    case 32:
+      // lb
+      return mips_ErrorNotImplemented;
+      break;
+    case 33:
+      // lh
+      return mips_ErrorNotImplemented;
+      break;
+    case 34:
+      // lwl
+      return mips_ErrorNotImplemented;
+      break;
+    case 35:
+      // lw
+      return mips_ErrorNotImplemented;
+      break;
+    case 36:
+      // lbu
+      return mips_ErrorNotImplemented;
+      break;
+    case 37:
+      // lhu
+      return mips_ErrorNotImplemented;
+      break;
+    case 38:
+      // lwr
+      return mips_ErrorNotImplemented;
+      break;
+    case 40:
+      // sb
+      return mips_ErrorNotImplemented;
+      break;
+    case 41:
+      // sh
+      return mips_ErrorNotImplemented;
+      break;
+    case 42:
+      // swl
+      return mips_ErrorNotImplemented;
+      break;
+    case 43:
+      // sw
+      return mips_ErrorNotImplemented;
+      break;
+    case 46:
+      // swr
+      return mips_ErrorNotImplemented;
+      break;
     default:
       // This path will never be taken..
       return mips_ExceptionInvalidInstruction;
