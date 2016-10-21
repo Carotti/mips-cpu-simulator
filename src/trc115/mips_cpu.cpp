@@ -390,7 +390,7 @@ mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
   if(state->debugLevel >= 2){
     fprintf(state->debugDest, "Raw Instruction = %d\n", instrJ.data);
     fprintf(state->debugDest, "OpCode = %d\n", instrJ.opCode);
-    fprintf(state->debugDest, "Address = %d", instrJ.address);
+    fprintf(state->debugDest, "Address = %d\n", instrJ.address);
   }
 
   uint32_t oldPc;
@@ -426,19 +426,21 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   mips_cpu_get_pc(state, &oldPc);
 
   switch(instrI.opCode){
-    case 2:
+    case 1:
       // bltz, bgez, bltzal OR bgezal
       if (instrI.dest == 0 || instrI.dest == 16){
         // bltz, or bltzal
-        if (signed(op1) < 0){
+        if (int32_t(op1) < 0){
           // Sign extend offset to 32 bit and shift left twice
           state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
         }
       } else if (instrI.dest == 1 || instrI.dest == 17){
         // bgez or bgezal
-        if (signed(op1) >= 0){
+        if (int32_t(op1) >= 0){
           state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
         }
+      } else {
+        return mips_ExceptionInvalidInstruction;
       }
       if(instrI.dest == 16 || instrI.dest == 17){
         // bltzal or bgezal - set $R31 unconditionally
@@ -474,6 +476,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       return mips_Success;
       break;
     case 8:
+      // addi
       return mips_ErrorNotImplemented;
       break;
     case 9:

@@ -142,6 +142,42 @@ int main(){
   // nops after since:
   // "Reads of the HI or LO special registers must be separated from
   // subsequent instructions that write to them by two or more other instructions."
+  test basic_mthi("mthi", "Checks value from mfhi is same as given in mthi", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 17).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 9, 0, 16).data);
+  writeMem(testMem, get_pc(testCPU) + 8, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x0BABABAC);
+  basic_mthi.checkReg(9, 0x0BABABAC);
+  basic_mthi.perform_test(testCPU, testMem);
+
+  test basic_mfhi("mfhi", "Checks value from mfhi is same as given in mthi", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 17).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 9, 0, 16).data);
+  writeMem(testMem, get_pc(testCPU) + 8, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x1F1C1D1A);
+  basic_mfhi.checkReg(9, 0x1F1C1D1A);
+  basic_mfhi.perform_test(testCPU, testMem);
+
+  test basic_mtlo("mtlo", "Checks value from mflo is same as given in mtlo", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 17).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 9, 0, 16).data);
+  writeMem(testMem, get_pc(testCPU) + 8, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x0BABABAC);
+  basic_mtlo.checkReg(9, 0x0BABABAC);
+  basic_mtlo.perform_test(testCPU, testMem);
+
+  test basic_mflo("mflo", "Checks value from mflo is same as given in mtlo", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 17).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 9, 0, 16).data);
+  writeMem(testMem, get_pc(testCPU) + 8, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 12, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x1F1C1D1A);
+  basic_mflo.checkReg(9, 0x1F1C1D1A);
+  basic_mflo.perform_test(testCPU, testMem);
+
   test basic_multu("multu", "Verify values of hi and lo after R10 * R11", 5);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 25).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 8, 0, 16).data);
@@ -368,8 +404,6 @@ int main(){
   slt_basic_set.checkReg(8, 1);
   slt_basic_set.perform_test(testCPU, testMem);
 
-  mips_cpu_set_debug_level(testCPU, 2, stderr);
-
   test j_basic("j", "Check that pc has correct value after branch delay slot and the instruction in the branch delay slot is executed", 2);
   writeMem(testMem, get_pc(testCPU), instruction_impl_j(2, 99).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(9, 0, 8, 0, 32).data);
@@ -378,7 +412,58 @@ int main(){
   j_basic.checkReg(255, 396);
   j_basic.checkReg(8, 0xAB);
   j_basic.perform_test(testCPU, testMem);
-  cout << get_pc(testCPU) << endl;
+
+  mips_cpu_set_debug_level(testCPU, 2, stderr);
+
+  test jal_basic("jal", "Check that pc and link register have correct values after branch delay slot and the instruction in the branch delay slot is executed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_j(3, 109).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(9, 0, 8, 0, 32).data);
+  writeReg(testCPU, 9, 0xAB);
+  // Top 4 bits of new program counter have to be 0, since we have less than 256MB of memory
+  jal_basic.checkReg(255, 436);
+  jal_basic.checkReg(8, 0xAB);
+  jal_basic.checkReg(31, get_pc(testCPU) + 8);
+  jal_basic.perform_test(testCPU, testMem);
+
+  test bltz_basic_no("bltz", "Check that branch isn't taken if source register is equal to 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0);
+  bltz_basic_no.checkReg(8, 0);
+  bltz_basic_no.checkReg(255, get_pc(testCPU) + 8);
+  bltz_basic_no.perform_test(testCPU, testMem);
+
+  test bltz_basic_noPos("bltz", "Check that branch isn't taken if source register is > 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x1349DE40);
+  bltz_basic_noPos.checkReg(8, 0x1349DE40);
+  bltz_basic_noPos.checkReg(255, get_pc(testCPU) + 8);
+  bltz_basic_noPos.perform_test(testCPU, testMem);
+
+  test bltz_basic_yes("bltz", "Check that branch is taken if source register is < 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x80FAB131);
+  bltz_basic_yes.checkReg(8, 0x80FAB131);
+  bltz_basic_yes.checkReg(255, get_pc(testCPU) - 36);
+  bltz_basic_yes.perform_test(testCPU, testMem);
+
+  test bgez_basic_no("bgez", "Check that branch isn't taken if source register is < 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF1).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0);
+  bgez_basic_no.checkReg(8, 0);
+  bgez_basic_no.checkReg(255, get_pc(testCPU) + 8);
+  bgez_basic_no.perform_test(testCPU, testMem);
+
+  test bgez_basic_yes("bgez", "Check that branch is taken if source register is 0. Also check that source isn't changed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(1, 8, 0, 0xFFF6).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x80FAB131);
+  bltz_basic_yes.checkReg(8, 0x80FAB131);
+  bltz_basic_yes.checkReg(255, get_pc(testCPU) - 36);
+  bltz_basic_yes.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
