@@ -287,6 +287,7 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       return mips_Success;
       break;
     case 24:
+      // mul
       // sign extend the operands then calculate the result
       state->hi = (((int64_t(op1) << 32) >> 32) * ((int64_t(op2) << 32) >> 32)) >> 32;
       state->lo = ((int64_t(op1) << 32) >> 32) * ((int64_t(op2) << 32) >> 32);
@@ -432,20 +433,16 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
         if (signed(op1) < 0){
           // Sign extend offset to 32 bit and shift left twice
           state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
-          if(instrI.dest == 16){
-            // bltzal
-            mips_cpu_set_register(state, 31, oldPc + 4);
-          }
         }
       } else if (instrI.dest == 1 || instrI.dest == 17){
         // bgez or bgezal
         if (signed(op1) >= 0){
           state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
-          if(instrI.dest == 17){
-            // bgezal
-            mips_cpu_set_register(state, 31, oldPc + 4);
-          }
         }
+      }
+      if(instrI.dest == 16 || instrI.dest == 17){
+        // bltzal or bgezal - set $R31 unconditionally
+        mips_cpu_set_register(state, 31, oldPc + 4);
       }
       return mips_Success;
     case 4:

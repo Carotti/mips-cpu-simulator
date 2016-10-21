@@ -6,7 +6,7 @@ int main(){
 
   mips_test_begin_suite();
 
-  mips_mem_h testMem = mips_mem_create_ram(8192);
+  mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
   // Check get and set for R1 to R31
@@ -359,12 +359,26 @@ int main(){
   sltu_basic.checkReg(8, 1);
   sltu_basic.perform_test(testCPU, testMem);
 
+  writeReg(testCPU, 8, 0xBBBBBBBB);
+
   test slt_basic_set("slt", "Check that R8 is set since R9 < R10 (signed)", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 42).data);
   writeReg(testCPU, 9, 0x08008501);
   writeReg(testCPU, 10, 0x0F00F13D);
   slt_basic_set.checkReg(8, 1);
   slt_basic_set.perform_test(testCPU, testMem);
+
+  mips_cpu_set_debug_level(testCPU, 2, stderr);
+
+  test j_basic("j", "Check that pc has correct value after branch delay slot and the instruction in the branch delay slot is executed", 2);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_j(2, 99).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(9, 0, 8, 0, 32).data);
+  writeReg(testCPU, 9, 0xAB);
+  // Top 4 bits of new program counter have to be 0, since we have less than 256MB of memory
+  j_basic.checkReg(255, 396);
+  j_basic.checkReg(8, 0xAB);
+  j_basic.perform_test(testCPU, testMem);
+  cout << get_pc(testCPU) << endl;
 
   mips_mem_free(testMem);
   testMem = NULL;

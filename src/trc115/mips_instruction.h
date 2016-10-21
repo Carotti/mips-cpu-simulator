@@ -74,7 +74,8 @@ struct instruction_impl_j: public instruction_impl{
     address(dataIn & 0x03FFFFFF){}
 
   instruction_impl_j(uint8_t opCodeIn, uint32_t addressIn):
-    instruction_impl(uint32_t(((uint32_t(opCodeIn) & 0x0000003F) << 26) | (addressIn & 0x03FFFFFF)), 'j'){}
+    instruction_impl(uint32_t(((uint32_t(opCodeIn) & 0x0000003F) << 26) | (addressIn & 0x03FFFFFF)), 'j'),
+    address(addressIn){}
 };
 
 // Used for I type instructions, inherits the generic function type
