@@ -353,11 +353,18 @@ int main(){
   slt_basic_unset.checkReg(8, 0);
   slt_basic_unset.perform_test(testCPU, testMem);
 
-  test sltu_basic_set("sltu", "Check that R8 is set since R9 < R10 (unsigned)", 1);
+  test sltu_basic("sltu", "Check that R8 is set since R9 < R10 (unsigned)", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 43).data);
   writeReg(testCPU, 8, 0x1234ABCD);
-  sltu_basic_set.checkReg(8, 1);
-  sltu_basic_set.perform_test(testCPU, testMem);
+  sltu_basic.checkReg(8, 1);
+  sltu_basic.perform_test(testCPU, testMem);
+
+  test slt_basic_set("slt", "Check that R8 is set since R9 < R10 (signed)", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 42).data);
+  writeReg(testCPU, 9, 0x08008501);
+  writeReg(testCPU, 10, 0x0F00F13D);
+  slt_basic_set.checkReg(8, 1);
+  slt_basic_set.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
