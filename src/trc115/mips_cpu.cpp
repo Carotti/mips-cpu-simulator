@@ -288,14 +288,14 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 24:
       // sign extend the operands then calculate the result
-      state->hi = uint32_t((int64_t((int64_t(op1) << 32) >> 32) * int64_t((int64_t(op2) << 32) >> 32)) >> 32);
-      state->lo = uint32_t(int64_t((int64_t(op1) << 32) >> 32) * int64_t((int64_t(op2) << 32) >> 32));
+      state->hi = (((int64_t(op1) << 32) >> 32) * ((int64_t(op2) << 32) >> 32)) >> 32;
+      state->lo = ((int64_t(op1) << 32) >> 32) * ((int64_t(op2) << 32) >> 32);
       return mips_Success;
       break;
     case 25:
       // multu
-      state->hi = uint32_t((uint64_t(op1) * uint64_t(op2)) >> 32);
-      state->lo = uint32_t(uint64_t(op1) * uint64_t(op2));
+      state->hi = (uint64_t(op1) * uint64_t(op2)) >> 32;
+      state->lo = uint64_t(op1) * uint64_t(op2);
       return mips_Success;
       break;
     case 26:
@@ -359,6 +359,22 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
     case 39:
       // nor
       return mips_cpu_set_register(state, instrR.dest, ~(op1 | op2));
+      break;
+    case 42:
+      // slt
+      if (int32_t(op1) < int32_t(op2)){
+        return mips_cpu_set_register(state, instrR.dest, 1);
+      } else {
+        return mips_cpu_set_register(state, instrR.dest, 0);
+      }
+      break;
+    case 43:
+      // sltu
+      if (op1 < op2){
+        return mips_cpu_set_register(state, instrR.dest, 1);
+      } else {
+        return mips_cpu_set_register(state, instrR.dest, 0);
+      }
       break;
     default:
       // If not any of the above cases, the instruction is invalid
@@ -458,18 +474,10 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       if (signed(instrI.source) > 0){
         state->delaySlot = oldPc + int32_t(int32_t(instrI.immediate << 16) >> 14);
       }
+      return mips_Success;
       break;
     case 8:
-      // addi
-      if(((int32_t(op1) > 0) && (int32_t(int32_t(instrI.immediate) << 16) >> 16) > 0)
-        && (int32_t(op1) + int32_t(int32_t(instrI.immediate) << 16) >> 16) <= 0)) ||
-        ((int32_t(op1) < 0) && (int32_t(int32_t(instrI.immediate) << 16) >> 16) < 0)
-        && (int32_t(op1) + int32_t(int32_t(instrI.immediate) << 16) >> 16) >= 0))){
-        // If both operands are +ve and result is -ve
-        // OR If both operands are -ve and result is +ve
-        return mips_ExceptionArithmeticOverflow;
-      }
-      return mips_cpu_set_register(state, instrR.dest, int32_t(op1) + int32_t(int32_t(instrI.immediate) << 16) >> 16));
+      return mips_ErrorNotImplemented;
       break;
     case 9:
       // addiu
@@ -552,7 +560,6 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       return mips_ExceptionInvalidInstruction;
       break;
   }
-
 }
 
 void advance_pc(mips_cpu_h state, int offset){
