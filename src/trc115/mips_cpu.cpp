@@ -560,7 +560,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 34:
       // lwl
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, op2 & (uint32_t(0) >> (4 - (effectiveAddress % 4))));
       break;
     case 35:
       // lw

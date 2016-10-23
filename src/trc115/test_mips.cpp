@@ -790,6 +790,36 @@ int main(){
   lb_posOffset.checkReg(8, 0x00000075);
   lb_posOffset.perform_test(testCPU, testMem);
 
+  test basic_lh("lh", "Verify that the half-word from the effective address is stored in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 0xFFF3).data);
+  writeReg(testCPU, 9, 551);
+  writeMem(testMem, 536, 0x55557B7B);
+  basic_lh.checkReg(8, 0x00007B7B);
+  basic_lh.perform_test(testCPU, testMem);
+
+  test lh_signExtend("lh", "Verify that the sign extended half-word from the effective address is stored in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 0xFFF4).data);
+  writeReg(testCPU, 9, 540);
+  writeMem(testMem, 528, 0x84F37676);
+  lh_signExtend.checkReg(8, 0xFFFF84F3);
+  lh_signExtend.perform_test(testCPU, testMem);
+
+  test lh_posOffset("lh", "Verify that the half-word from the effective address (generated with a positive offset) is stored in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 10).data);
+  writeReg(testCPU, 9, 510);
+  writeMem(testMem, 520, 0x7BBCC3D0);
+  lh_posOffset.checkReg(8, 0x00007BBC);
+  lh_posOffset.perform_test(testCPU, testMem);
+
+  mips_cpu_set_debug_level(testCPU, 2, stderr);
+
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 8, 0x12345678);
+  writeReg(testCPU, 9, 600);
+  mips_cpu_step(testCPU);
+  mips_cpu_step(testCPU);
+
   mips_mem_free(testMem);
   testMem = NULL;
   mips_cpu_free(testCPU);
