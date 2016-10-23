@@ -670,10 +670,26 @@ int main(){
     mips_test_end_test(overflowTestAddiu, 0, "Check addiu overflowing doesn't produce exception");
   }
 
+  test slti_yesNeg("slti", "Verify that R8 is set when R9 is less than the negative immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0xFFD3).data);
+  writeReg(testCPU, 9, 0xF14D3E0B);
+  writeReg(testCPU, 8, 2);
+  slti_yesNeg.checkReg(8, 1);
+  slti_yesNeg.perform_test(testCPU, testMem);
 
+  test slti_noNeg("slti", "Verify that R8 isn't set when R9 is more than the negative immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x80D3).data);
+  writeReg(testCPU, 9, 0xFFFFF329);
+  writeReg(testCPU, 8, 2);
+  slti_noNeg.checkReg(8, 0);
+  slti_noNeg.perform_test(testCPU, testMem);
 
-
-
+  test slti_yesPos("slti", "Verify that R8 isn set when R9 is less than the positive immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x74D1).data);
+  writeReg(testCPU, 9, 0x63D0);
+  writeReg(testCPU, 8, 2);
+  slti_yesPos.checkReg(8, 1);
+  slti_yesPos.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
