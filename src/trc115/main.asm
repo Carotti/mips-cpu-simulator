@@ -4,4 +4,4 @@
 main:
 
   lw $9, val
-  slti $8, $9, 0x8000
+  sltiu $8, $9, 0xFFFF

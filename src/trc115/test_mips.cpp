@@ -811,14 +811,83 @@ int main(){
   lh_posOffset.checkReg(8, 0x00007BBC);
   lh_posOffset.perform_test(testCPU, testMem);
 
-  mips_cpu_set_debug_level(testCPU, 2, stderr);
+  int lh_unaligned = mips_test_begin_test("lh");
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 11).data);
+  writeReg(testCPU, 9, 520);
+  writeReg(testCPU, 8, 0xA4C3B177);
+  mips_error lh_unalignedError = mips_cpu_step(testCPU);
+  if (lh_unalignedError == mips_ExceptionInvalidAddress){
+    mips_test_end_test(lh_unaligned, 1, "Check that an unaligned half-word produces an Invalid Address Exception");
+  } else {
+    mips_test_end_test(lh_unaligned, 0, "Check that an unaligned half-word produces an Invalid Address Exception");
+  }
 
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 0).data);
-  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
-  writeReg(testCPU, 8, 0x12345678);
+  test lh_unalignedReg("lh", "Verify that the destination register isn't changed after an Invalid Address Exception", 0);
+  lh_unalignedReg.checkReg(8, 0xA4C3B177);
+  lh_unalignedReg.perform_test(testCPU, testMem);
+
   writeReg(testCPU, 9, 600);
-  mips_cpu_step(testCPU);
-  mips_cpu_step(testCPU);
+  writeMem(testMem, 600, 0xF13BA4A4);
+  test basic_lwl1("lwl", "Verify that the most significant byte of the unaligned word replaces the most significant byte of R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(34, 9, 8, 3).data);
+  writeReg(testCPU, 8, 0x17462538);
+  basic_lwl1.checkReg(8, 0xA4462538);
+  basic_lwl1.perform_test(testCPU, testMem);
+
+  test basic_lwl2("lwl", "Verify that the 2 most significant bytes of the unaligned word replaces the 2 most significant bytes of R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(34, 9, 8, 2).data);
+  writeReg(testCPU, 8, 0x17462538);
+  basic_lwl2.checkReg(8, 0xA4A42538);
+  basic_lwl2.perform_test(testCPU, testMem);
+
+  test basic_lw("lw", "Verify that the contents of the aligned word are loaded into R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(35, 9, 8, -3).data);
+  writeReg(testCPU, 9, 543);
+  writeMem(testMem, 540, 0xBADBADBA);
+  basic_lw.checkReg(8, 0xBADBADBA);
+  basic_lw.perform_test(testCPU, testMem);
+
+  int lw_unaligned = mips_test_begin_test("lw");
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(35, 9, 8, 0).data);
+  writeReg(testCPU, 9, 474);
+  mips_error lw_unalignedError = mips_cpu_step(testCPU);
+  if (lw_unalignedError == mips_ExceptionInvalidAddress){
+    mips_test_end_test(lw_unaligned, 1, "Check that an unaligned word produces an Invalid Address Exception");
+  } else {
+    mips_test_end_test(lw_unaligned, 0, "Check that an unaligned word produces an Invalid Address Exception");
+  }
+
+  test basic_lbu("lbu", "Verify that the byte is not sign extended when loaded into R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(36, 9, 8, 24).data);
+  writeReg(testCPU, 9, 500);
+  writeMem(testMem, 524, 0x83D14751);
+  basic_lbu.checkReg(8, 0x00000083);
+  basic_lbu.perform_test(testCPU, testMem);
+
+  test basic_lhu("lhu", "Verify that the half-word is not sign extended when loaded into R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(37, 9, 8, 8).data);
+  writeReg(testCPU, 9, 540);
+  writeMem(testMem, 548, 0x01189998);
+  basic_lhu.checkReg(8, 0x00000118);
+  basic_lhu.perform_test(testCPU, testMem);
+
+  int lhu_unaligned = mips_test_begin_test("lhu");
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(37, 9, 8, 3).data);
+  writeReg(testCPU, 9, 574);
+  mips_error lhu_unalignedError = mips_cpu_step(testCPU);
+  if (lhu_unalignedError == mips_ExceptionInvalidAddress){
+    mips_test_end_test(lhu_unaligned, 1, "Check that an unaligned half-word produces an Invalid Address Exception");
+  } else {
+    mips_test_end_test(lhu_unaligned, 0, "Check that an unaligned half-word produces an Invalid Address Exception");
+  }
+
+  test basic_lwr1("lwr", "Verify that the least significant byte of an unaligned word replaces the least significant byte in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(38, 9, 8, 4).data);
+  writeReg(testCPU, 9, 560);
+  writeMem(testMem, 564, 0x73B04E1C);
+  writeReg(testCPU, 8, 0x075936AB);
+  basic_lwr1.checkReg(8, 0x07593673);
+  basic_lwr1.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;

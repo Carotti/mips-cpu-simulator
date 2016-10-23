@@ -560,11 +560,15 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 34:
       // lwl
-      return mips_cpu_set_register(state, instrI.dest, op2 & (uint32_t(0) >> (4 - (effectiveAddress % 4))));
+      return mips_cpu_set_register(state, instrI.dest, (memRead << (8 * (effectiveAddress % 4))) | (op2 & (uint32_t(0xFFFFFFFF) >> (32 - (8 * (effectiveAddress % 4))))));
       break;
     case 35:
       // lw
-      return mips_ErrorNotImplemented;
+      if ((effectiveAddress % 4) != 0){
+        // Unaligned word, return invalid address exception
+        return mips_ExceptionInvalidAddress;
+      }
+      return mips_cpu_set_register(state, instrI.dest, memRead);
       break;
     case 36:
       // lbu
@@ -572,11 +576,16 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 37:
       // lhu
-      return mips_ErrorNotImplemented;
+      if ((effectiveAddress % 2) != 0){
+        // Unaligned halfword, return invalid address exception
+        return mips_ExceptionInvalidAddress;
+      }
+      // Store the half-word after getting the correct part from the word read from memory
+      return mips_cpu_set_register(state, instrI.dest, (memRead >> (8 * (2 - (effectiveAddress % 4)))) & 0xFFFF);
       break;
     case 38:
       // lwr
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, (memRead >> (24 - (8 * (effectiveAddress % 4)))) | (op2 & (uint32_t(0xFFFFFFFF) << (8 + (8 * (effectiveAddress % 4))))));
       break;
     case 40:
       // sb
