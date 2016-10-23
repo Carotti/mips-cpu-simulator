@@ -177,7 +177,9 @@ mips_error mips_cpu_step(mips_cpu_h state){
     mips_cpu_set_pc(state, state->delaySlot);
     state->delaySlot = 0;
   } else {
-    advance_pc(state, 4);
+    uint32_t oldPc;
+    mips_cpu_get_pc(state, &oldPc);
+    mips_cpu_set_pc(state, oldPc + 4);
   }
 
   switch(nextInstruction.type){
@@ -434,8 +436,18 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   // A signed 32 bit sign extended version of the immediate
   int32_t signExtImmediate = int32_t(instrI.immediate << 16) >> 16;
 
+  // Store the old value of the PC
   uint32_t oldPc;
   mips_cpu_get_pc(state, &oldPc);
+
+  // Calculate the effective address, used for memory instructions
+  uint32_t effectiveAddress = op1 + signExtImmediate;
+
+  // Read the word enclosed around the effective address
+  uint32_t memRead;
+  mips_mem_read(state->mem, (effectiveAddress / 4) * 4, 4, (uint8_t*)&memRead);
+
+  cout << "WORD:: " <<  bitset<32>(memRead) << endl;
 
   switch(instrI.opCode){
     case 1:
@@ -518,27 +530,33 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 12:
       // andi
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, op1 & uint32_t(instrI.immediate));
       break;
     case 13:
       // ori
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, op1 | uint32_t(instrI.immediate));
       break;
     case 14:
       // xori
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, op1 ^ uint32_t(instrI.immediate));
       break;
     case 15:
       // lui
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, uint32_t(instrI.immediate) << 16);
       break;
-    case 32:
+    case 32:{
       // lb
-      return mips_ErrorNotImplemented;
-      break;
+      // Store the sign extended byte after getting the correct part from the word read from memory
+      return mips_cpu_set_register(state, instrI.dest, (int32_t((memRead >> (8 * (3 - (effectiveAddress % 4)))) & 0xFF) << 24) >> 24);
+      break;}
     case 33:
       // lh
-      return mips_ErrorNotImplemented;
+      if ((effectiveAddress % 2) != 0){
+        // Unaligned halfword, return invalid address exception
+        return mips_ExceptionInvalidAddress;
+      }
+      // Store the sign extended half-word after getting the correct part from the word read from memory
+      return mips_cpu_set_register(state, instrI.dest, (int32_t((memRead >> (8 * (2 - (effectiveAddress % 4)))) & 0xFFFF) << 16) >> 16);
       break;
     case 34:
       // lwl
@@ -550,7 +568,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 36:
       // lbu
-      return mips_ErrorNotImplemented;
+      return mips_cpu_set_register(state, instrI.dest, (memRead >> (8 * (3 - (effectiveAddress % 4)))) & 0xFF);
       break;
     case 37:
       // lhu
@@ -585,11 +603,4 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       return mips_ExceptionInvalidInstruction;
       break;
   }
-}
-
-void advance_pc(mips_cpu_h state, int offset){
-  uint32_t oldPc;
-  mips_cpu_get_pc(state, &oldPc);
-
-  mips_cpu_set_pc(state, oldPc + offset);
 }

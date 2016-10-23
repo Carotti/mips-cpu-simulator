@@ -38,7 +38,7 @@ int main(){
   cpu_reset.perform_test(testCPU, testMem);
 
   // Check that each combination of registers can be uses as source1, source2
-  // and dest - Yes this does 29,791 tests (Uses addu as simple instruction to implement)
+  // and dest - Yes this does ~28,000 tests (Uses addu as simple instruction to implement)
   // Could take this approach with every instruction but that would be OTT
   for (unsigned r1 = 1; r1 < 32; r1++){
     for (unsigned r2 = 1; r2 < 32; r2++){
@@ -414,8 +414,6 @@ int main(){
   j_basic.checkReg(8, 0xAB);
   j_basic.perform_test(testCPU, testMem);
 
-  mips_cpu_set_debug_level(testCPU, 2, stderr);
-
   test jal_basic("jal", "Check that pc and link register have correct values after branch delay slot and the instruction in the branch delay slot is executed", 2);
   writeMem(testMem, get_pc(testCPU), instruction_impl_j(3, 109).data);
   writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(9, 0, 8, 0, 32).data);
@@ -670,26 +668,127 @@ int main(){
     mips_test_end_test(overflowTestAddiu, 0, "Check addiu overflowing doesn't produce exception");
   }
 
-  test slti_yesNeg("slti", "Verify that R8 is set when R9 is less than the negative immediate", 1);
+  test slti_yesNeg("slti", "Verify that R8 is 1 when R9 is less than the negative immediate", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0xFFD3).data);
   writeReg(testCPU, 9, 0xF14D3E0B);
   writeReg(testCPU, 8, 2);
   slti_yesNeg.checkReg(8, 1);
   slti_yesNeg.perform_test(testCPU, testMem);
 
-  test slti_noNeg("slti", "Verify that R8 isn't set when R9 is more than the negative immediate", 1);
+  test slti_noNeg("slti", "Verify that R8 is 0 when R9 is more than the negative immediate", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x80D3).data);
   writeReg(testCPU, 9, 0xFFFFF329);
   writeReg(testCPU, 8, 2);
   slti_noNeg.checkReg(8, 0);
   slti_noNeg.perform_test(testCPU, testMem);
 
-  test slti_yesPos("slti", "Verify that R8 isn set when R9 is less than the positive immediate", 1);
+  test slti_yesPos("slti", "Verify that R8 is 1 when R9 is less than the positive immediate", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x74D1).data);
   writeReg(testCPU, 9, 0x63D0);
   writeReg(testCPU, 8, 2);
   slti_yesPos.checkReg(8, 1);
   slti_yesPos.perform_test(testCPU, testMem);
+
+  test slti_noPos("slti", "Verify that R8 is 0 when R9 is more than the positive immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x034C).data);
+  writeReg(testCPU, 9, 0x1AAAAAA4);
+  writeReg(testCPU, 8, 2);
+  slti_noPos.checkReg(8, 0);
+  slti_noPos.perform_test(testCPU, testMem);
+
+  test slti_noPosEq("slti", "Verify that R8 is 0 when R9 is equal to the positive immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x3B3B).data);
+  writeReg(testCPU, 9, 0x3B3B);
+  writeReg(testCPU, 8, 2);
+  slti_noPosEq.checkReg(8, 0);
+  slti_noPosEq.perform_test(testCPU, testMem);
+
+  test slti_noNegEq("slti", "Verify that R8 is 0 when R9 is equal to the negative immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(10, 9, 8, 0x8303).data);
+  writeReg(testCPU, 9, 0xFFFF8303);
+  writeReg(testCPU, 8, 2);
+  slti_noNegEq.checkReg(8, 0);
+  slti_noNegEq.perform_test(testCPU, testMem);
+
+  test sltiu_yesSmall("sltiu", "Verify that R8 is 1 when R9 is less than the immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(11, 9, 8, 0x7432).data);
+  writeReg(testCPU, 9, 0x6DF0);
+  writeReg(testCPU, 8, 2);
+  sltiu_yesSmall.checkReg(8, 1);
+  sltiu_yesSmall.perform_test(testCPU, testMem);
+
+  test sltiu_yesBig("sltiu", "Verify that R8 is 1 when R9 is less than the immediate using the fact the immediate is still sign extended", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(11, 9, 8, 0xFF14).data);
+  writeReg(testCPU, 9, 0xFFFF7D1b);
+  writeReg(testCPU, 8, 2);
+  sltiu_yesBig.checkReg(8, 1);
+  sltiu_yesBig.perform_test(testCPU, testMem);
+
+  test sltiu_noSmall("sltiu", "Verify that R8 is 0 when R9 is more than the immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(11, 9, 8, 0x6B1F).data);
+  writeReg(testCPU, 9, 0x7BF12734);
+  writeReg(testCPU, 8, 2);
+  sltiu_noSmall.checkReg(8, 0);
+  sltiu_noSmall.perform_test(testCPU, testMem);
+
+  test sltiu_noBig("sltiu", "Verify that R8 is 0 when R9 is more than the immediate using the fact the immediate is still sign extended", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(11, 9, 8, 0x8932).data);
+  writeReg(testCPU, 9, 0xFFFF9632);
+  writeReg(testCPU, 8, 2);
+  sltiu_noBig.checkReg(8, 0);
+  sltiu_noBig.perform_test(testCPU, testMem);
+
+  test basic_andi("andi", "Verify the result of R8 after R9 ANDed with immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(12, 9, 8, 0xF6D7).data);
+  writeReg(testCPU, 9, 0xAB34965B);
+  basic_andi.checkReg(8, 0x9653);
+  basic_andi.perform_test(testCPU, testMem);
+
+  test basic_ori("ori", "Verify the result of R8 after R9 ORed with immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(13, 9, 8, 0x2864).data);
+  writeReg(testCPU, 9, 0xFABADAB1);
+  basic_ori.checkReg(8, 0xFABAFAF5);
+  basic_ori.perform_test(testCPU, testMem);
+
+  test basic_xori("xori", "Verify the result of R8 after R9 XORed with immediate", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(14, 9, 8, 0x31AB).data);
+  writeReg(testCPU, 9, 0x1DABAD00);
+  basic_xori.checkReg(8, 0x1DAB9CAB);
+  basic_xori.perform_test(testCPU, testMem);
+
+  test basic_lui("lui", "Verify that the immediate is placed in the 16 MSBs of R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(15, 0, 8, 0xB153).data);
+  writeReg(testCPU, 8, 0xFABFABFA);
+  basic_lui.checkReg(8, 0xB1530000);
+  basic_lui.perform_test(testCPU, testMem);
+
+  mips_cpu_set_debug_level(testCPU, 2, stderr);
+
+  // Reset the program counter for the next test to ensure it isn't the same
+  // as the memory address used in the test...
+  // (Maybe data and instructions should be separated...)
+  mips_cpu_set_pc(testCPU, 0);
+
+  test basic_lb("lb", "Verify that the byte from the effective address is stored in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(32, 9, 8, 0xFFF2).data);
+  writeReg(testCPU, 9, 512);
+  writeMem(testMem, 496, 0xABAB1DAB);
+  basic_lb.checkReg(8, 0x1D);
+  basic_lb.perform_test(testCPU, testMem);
+
+  test lb_signExtend("lb", "Verify that the sign extended byte from the effective address is stored in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(32, 9, 8, 0xFF8F).data);
+  writeReg(testCPU, 9, 616);
+  writeMem(testMem, 500, 0x777777F3);
+  lb_signExtend.checkReg(8, 0xFFFFFFF3);
+  lb_signExtend.perform_test(testCPU, testMem);
+
+  test lb_posOffset("lb", "Verify that the byte from the effective address (generated with a positive offset) is stored in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(32, 9, 8, 15).data);
+  writeReg(testCPU, 9, 640);
+  writeMem(testMem, 652, 0xBFBFBF75);
+  lb_posOffset.checkReg(8, 0x00000075);
+  lb_posOffset.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
@@ -724,16 +823,16 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
     }
   }
 
-  // Check the state of the CPU is as expected afterward
+  // Check the state of the mem is as expected afterward
   for(unsigned i = 0; i < unsigned(memCheck.size()); i++){
-    uint8_t testValue[4];
-    mips_mem_read(mem, memCheck[i].address, 4, testValue);
-    if (uint32_t((testValue[0] << 24) | (testValue[1] << 16) |
-      (testValue [2] << 8) | testValue [3]) != memCheck[i].value) {
+    uint32_t testValue;
+    mips_mem_read(mem, memCheck[i].address, 4, (uint8_t*)&testValue);
+    if (testValue != memCheck[i].value) {
         success = 0;
     }
   }
 
+  // Check the state of the regs is as expected afterward
   for(unsigned i = 0; i < unsigned(regCheck.size()); i++){
     uint32_t testValue = 0;
     if (regCheck[i].index < 32){
