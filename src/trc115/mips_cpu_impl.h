@@ -82,3 +82,5 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction);
 
 // advances the program counter of state by the specified offset
 void advance_pc(mips_cpu_h state, int offset);
+
+void byte_swap(uint32_t & value);

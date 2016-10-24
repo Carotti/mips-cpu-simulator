@@ -48,9 +48,9 @@ int main(){
   // Check that each combination of registers can be uses as source1, source2
   // and dest - Yes this does ~28,000 tests (Uses addu as simple instruction to implement)
   // Could take this approach with every instruction but that would be OTT
-  for (unsigned r1 = 1; r1 < 32; r1++){
-    for (unsigned r2 = 1; r2 < 32; r2++){
-      for (unsigned r3 = 1; r3 < 32; r3 ++){
+  for (unsigned r1 = 1; r1 < 32; r1 += 7){
+    for (unsigned r2 = 1; r2 < 32; r2 += 5){
+      for (unsigned r3 = 1; r3 < 32; r3 += 3){
         // Make sure Source1 and Source 2 are different
         if(r2 != r3){
           test basic_addu("<internal>", "Verify the result of addu with no overflow for each combination of source1, source2 and destination", 1);
@@ -657,15 +657,15 @@ int main(){
   }
 
   test basic_addiu("addiu", "Verify the result of addiu with no overflow", 1);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0xABCD).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0x1437).data);
   writeReg(testCPU, 9, 0x1374BAB3);
-  basic_addiu.checkReg(8, 0x13756680);
+  basic_addiu.checkReg(8, 0x1374CEEA);
   basic_addiu.perform_test(testCPU, testMem);
 
   test addiu_overflow("addiu", "Verify that addiu result valid even with overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0xABCD).data);
   writeReg(testCPU, 9, 0xFFFFFAB3);
-  addiu_overflow.checkReg(8, 0x0000A680);
+  addiu_overflow.checkReg(8, 0xFFFFA680);
 
   mips_error overflowErrorAddiu = addiu_overflow.perform_test(testCPU, testMem);
   int overflowTestAddiu = mips_test_begin_test("addiu");
@@ -770,8 +770,6 @@ int main(){
   basic_lui.checkReg(8, 0xB1530000);
   basic_lui.perform_test(testCPU, testMem);
 
-  mips_cpu_set_debug_level(testCPU, 2, stderr);
-
   // Reset the program counter for the next test to ensure it isn't the same
   // as the memory address used in the test...
   // (Maybe data and instructions should be separated...)
@@ -836,6 +834,7 @@ int main(){
 
   writeReg(testCPU, 9, 600);
   writeMem(testMem, 600, 0xF13BA4A4);
+
   test basic_lwl1("lwl", "Verify that the most significant byte of the unaligned word replaces the most significant byte of R8", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(34, 9, 8, 3).data);
   writeReg(testCPU, 8, 0x17462538);
@@ -889,13 +888,27 @@ int main(){
     mips_test_end_test(lhu_unaligned, 0, "Check that an unaligned half-word produces an Invalid Address Exception");
   }
 
-  test basic_lwr1("lwr", "Verify that the least significant byte of an unaligned word replaces the least significant byte in R8", 1);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_i(38, 9, 8, 4).data);
-  writeReg(testCPU, 9, 560);
-  writeMem(testMem, 564, 0x73B04E1C);
   writeReg(testCPU, 8, 0x075936AB);
+  writeReg(testCPU, 9, 564);
+  writeMem(testMem, 564, 0x73B04E1C);
+
+  test basic_lwr1("lwr", "Verify that the least significant byte of an unaligned word replaces the least significant byte in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(38, 9, 8, 0).data);
   basic_lwr1.checkReg(8, 0x07593673);
   basic_lwr1.perform_test(testCPU, testMem);
+
+  test basic_lwr2("lwr", "Verify that the 3 least significant bytes of an unaligned word replace the 3 least significant bytes in R8", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(38, 9, 8, 2).data);
+  basic_lwr2.checkReg(8, 0x0773B04E);
+  basic_lwr2.perform_test(testCPU, testMem);
+
+  test basic_sb("sb", "Verify that the least significant byte of R8 is stored in the effective address without overwriting the rest of the word in memory", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_i(40, 9, 8, 3).data);
+  writeMem(testMem, 540, 0x1ACD4B3D);
+  writeReg(testCPU, 8, 0xABCDEF93);
+  writeReg(testCPU, 9, 540);
+  basic_sb.checkMem(540, 0x1ACD4B93);
+  basic_sb.perform_test(testCPU, testMem);
 
   mips_mem_free(testMem);
   testMem = NULL;
@@ -934,6 +947,7 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
   for(unsigned i = 0; i < unsigned(memCheck.size()); i++){
     uint32_t testValue;
     mips_mem_read(mem, memCheck[i].address, 4, (uint8_t*)&testValue);
+    byte_swap_test(testValue);
     if (testValue != memCheck[i].value) {
         success = 0;
     }
@@ -958,11 +972,7 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
 }
 
 void writeMem(mips_mem_h mem, uint32_t address, uint32_t value){
-
-  // Credit to DT
-  uint32_t &v=value;
-  v = (v<<24) | ((v>>8)&0x0000FF00) | ((v<<8)&0x00FF0000) | (v>>24);
-
+  byte_swap_test(value);
   mips_mem_write(mem, address, 4, (uint8_t*)&value);
 }
 
@@ -972,4 +982,8 @@ void writeReg(mips_cpu_h state, uint8_t index, uint32_t value){
   } else if (index == 255){
     mips_cpu_set_pc(state, value);
   }
+}
+
+void byte_swap_test(uint32_t &value){
+  value = (value<<24) | ((value>>8)&0x0000FF00) | ((value<<8)&0x00FF0000) | (value>>24);
 }

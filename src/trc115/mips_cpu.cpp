@@ -142,7 +142,7 @@ mips_error mips_cpu_step(mips_cpu_h state){
     4,
     (uint8_t*)&instructionData);
   // Correct the endianness
-  instructionData = (instructionData<<24) | ((instructionData>>8)&0x0000FF00) | ((instructionData<<8)&0x00FF0000) | (instructionData>>24);
+  byte_swap(instructionData);
 
   // If mips_mem_read declares an error, the error is returned
   if(attemptRead != mips_Success){
@@ -167,9 +167,9 @@ mips_error mips_cpu_step(mips_cpu_h state){
   }
 
   if(state->debugLevel >= 2){
-    fprintf(state->debugDest, "Prior register values: (signed decimal)\n");
+    fprintf(state->debugDest, "Prior register values:\n");
     for (unsigned i = 0; i < 32; i++){
-      fprintf(state->debugDest, "    R%d\t= %d\n",i, state->registers[i]);
+      fprintf(state->debugDest, "    R%d\t= 0x%X\n",i, state->registers[i]);
     }
   }
 
@@ -447,7 +447,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   uint32_t memRead;
   mips_mem_read(state->mem, (effectiveAddress / 4) * 4, 4, (uint8_t*)&memRead);
   // Correct the endianness
-  memRead = (memRead<<24) | ((memRead>>8)&0x0000FF00) | ((memRead<<8)&0x00FF0000) | (memRead>>24);
+  byte_swap(memRead);
 
   switch(instrI.opCode){
     case 1:
@@ -510,7 +510,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 9:
       // addiu
-      return mips_cpu_set_register(state, instrI.dest, op1 + instrI.immediate);
+      return mips_cpu_set_register(state, instrI.dest, op1s + signExtImmediate);
       break;
     case 10:
       // slti
@@ -587,10 +587,12 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       // lwr
       return mips_cpu_set_register(state, instrI.dest, (memRead >> (24 - (8 * (effectiveAddress % 4)))) | (op2 & (uint32_t(0xFFFFFFFF) << (8 + (8 * (effectiveAddress % 4))))));
       break;
-    case 40:
+    case 40:{
       // sb
-      return mips_ErrorNotImplemented;
-      break;
+      uint32_t memWrite = ((op2 & 0xFF) << (8 * (3 - (effectiveAddress % 4)))) | (memRead & ~(0xFF000000ul >> (8 * (effectiveAddress % 4))));
+      byte_swap(memWrite);
+      return mips_mem_write(state->mem, 4 * (effectiveAddress / 4), 4, (uint8_t*)&memWrite);
+      break;}
     case 41:
       // sh
       return mips_ErrorNotImplemented;
@@ -612,4 +614,8 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       return mips_ExceptionInvalidInstruction;
       break;
   }
+}
+
+void byte_swap(uint32_t &value){
+  value = (value<<24) | ((value>>8)&0x0000FF00) | ((value<<8)&0x00FF0000) | (value>>24);
 }

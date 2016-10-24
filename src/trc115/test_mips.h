@@ -60,3 +60,5 @@ struct test{
 uint32_t get_pc(mips_cpu_h state);
 void writeMem(mips_mem_h mem, uint32_t address, uint32_t value);
 void writeReg(mips_cpu_h state, uint8_t index, uint32_t value);
+
+void byte_swap_test(uint32_t &value);
