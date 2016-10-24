@@ -1,5 +1,5 @@
-#include "../shared/mips.h"
-#include "mips_instruction.h"
+#include "mips.h"
+#include "mips_instruction_test.h"
 
 #include <iostream>
 #include <vector>

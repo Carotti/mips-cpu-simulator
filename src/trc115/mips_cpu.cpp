@@ -132,8 +132,6 @@ mips_error mips_cpu_step(mips_cpu_h state){
   }
   // This is where the fun happens!!
 
-  // TODO: Debugging printout.... ughhhh
-
   // Instructions are 4 bytes long
   uint32_t instructionData;
 
@@ -143,6 +141,8 @@ mips_error mips_cpu_step(mips_cpu_h state){
     state->pc,
     4,
     (uint8_t*)&instructionData);
+  // Correct the endianness
+  instructionData = (instructionData<<24) | ((instructionData>>8)&0x0000FF00) | ((instructionData<<8)&0x00FF0000) | (instructionData>>24);
 
   // If mips_mem_read declares an error, the error is returned
   if(attemptRead != mips_Success){
@@ -446,8 +446,8 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   // Read the word enclosed around the effective address
   uint32_t memRead;
   mips_mem_read(state->mem, (effectiveAddress / 4) * 4, 4, (uint8_t*)&memRead);
-
-  cout << "WORD:: " <<  bitset<32>(memRead) << endl;
+  // Correct the endianness
+  memRead = (memRead<<24) | ((memRead>>8)&0x0000FF00) | ((memRead<<8)&0x00FF0000) | (memRead>>24);
 
   switch(instrI.opCode){
     case 1:

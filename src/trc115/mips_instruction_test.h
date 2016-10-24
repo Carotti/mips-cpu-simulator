@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "../shared/mips.h"
+#include "mips.h"
 
 #include <iostream>
 #include <bitset>
@@ -11,12 +11,6 @@ struct instruction_impl{
   uint8_t opCode;
   // Only used for an 'actual' function rather than instruction set member
   uint32_t data;
-
-  // Constructor for instruction_impl used by the instruction set
-  instruction_impl(char typeIn, uint8_t opCodeIn):
-    type(typeIn),
-    opCode(opCodeIn),
-    data(0){}
 
   // Constructor where there is actual raw data
   instruction_impl(uint32_t dataIn, char typeIn):
@@ -32,15 +26,6 @@ struct instruction_impl_r : public instruction_impl{
   uint8_t dest;
   uint8_t shift;
   uint8_t function;
-
-  // Constructor with just the data
-  instruction_impl_r(uint32_t dataIn):
-    instruction_impl(dataIn, 'r'),
-    source1(uint8_t((dataIn & 0x03E00000) >> 21)),
-    source2(uint8_t((dataIn & 0x001F0000) >> 16)),
-    dest(uint8_t((dataIn & 0x0000F800) >> 11)),
-    shift(uint8_t((dataIn & 0x000007C0) >> 6)),
-    function(uint8_t(dataIn & 0x0000003F)){}
 
   // Constructor specifying each part of the instruction
   instruction_impl_r(
@@ -68,11 +53,6 @@ struct instruction_impl_r : public instruction_impl{
 struct instruction_impl_j: public instruction_impl{
   uint32_t address;
 
-  // Constructor with just the data
-  instruction_impl_j(uint32_t dataIn):
-    instruction_impl(dataIn, 'j'),
-    address(dataIn & 0x03FFFFFF){}
-
   instruction_impl_j(uint8_t opCodeIn, uint32_t addressIn):
     instruction_impl(uint32_t(((uint32_t(opCodeIn) & 0x0000003F) << 26) | (addressIn & 0x03FFFFFF)), 'j'),
     address(addressIn){}
@@ -83,13 +63,6 @@ struct instruction_impl_i: public instruction_impl{
   uint8_t source;
   uint8_t dest;
   uint16_t immediate;
-
-  // Constructor with just the data
-  instruction_impl_i(uint32_t dataIn):
-    instruction_impl(dataIn, 'i'),
-    source(uint8_t((dataIn & 0x03E00000) >> 21)),
-    dest(uint8_t((dataIn & 0x001F0000) >> 16)),
-    immediate(uint16_t((dataIn & 0x0000FFFF))){}
 
   // Constructor specifying each part of the instruction
   instruction_impl_i(uint8_t opCodeIn, uint8_t sourceIn, uint8_t destIn, uint16_t immediateIn):

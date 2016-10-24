@@ -9,6 +9,14 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
+  /*uint32_t value = 0x12345678;
+  mips_mem_write(testMem, 0, 4, (uint8_t*)&value);
+
+  uint8_t read;
+  mips_mem_read(testMem, 0, 1, &read);
+
+  cout << int32_t(read) << endl;*/
+
   // Check get and set for R1 to R31
   for (unsigned i = 1; i < 32; i++){
     test cpu_getSetReg("<internal>", "Verify that the value from a register is the same as the value the register was set to", 0);
@@ -950,6 +958,11 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
 }
 
 void writeMem(mips_mem_h mem, uint32_t address, uint32_t value){
+
+  // Credit to DT
+  uint32_t &v=value;
+  v = (v<<24) | ((v>>8)&0x0000FF00) | ((v<<8)&0x00FF0000) | (v>>24);
+
   mips_mem_write(mem, address, 4, (uint8_t*)&value);
 }
 

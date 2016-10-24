@@ -1,7 +1,7 @@
 #include <vector>
 
-#include "../shared/mips.h"
-#include "mips_instruction.h"
+#include "mips.h"
+#include "mips_instruction_cpu.h"
 
 using namespace std;
 
