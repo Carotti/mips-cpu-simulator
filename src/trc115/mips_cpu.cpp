@@ -306,7 +306,8 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
     case 26:
       // div
       if (op2 == 0){
-        return mips_ExceptionInvalidInstruction;
+        // Operation is now undefined - don't modify hi and lo
+        return mips_Success;
       }
       state->lo = op1s / op2s;
       state->hi = op1s % op2s;
@@ -315,7 +316,8 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
     case 27:
       // divu
       if (op2 == 0){
-        return mips_ExceptionInvalidInstruction;
+        // Operation is now undefined - don't modify hi and lo
+        return mips_Success;
       }
       state->lo = op1 / op2;
       state->hi = op1 % op2;

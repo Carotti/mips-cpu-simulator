@@ -90,10 +90,18 @@ int main(){
 
   test basic_sra("sra", "Verify that R8 = R9 arith>> 5 and R9 unchanged", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(0, 9, 8, 5, 3).data);
-  writeReg(testCPU, 9, 0x80000000);
-  basic_sra.checkReg(8, 0xFC000000);
-  basic_sra.checkReg(9, 0x80000000);
+  writeReg(testCPU, 9, 0x80309000);
+  basic_sra.checkReg(8, 0xFC018480);
+  basic_sra.checkReg(9, 0x80309000);
   basic_sra.perform_test(testCPU, testMem);
+
+  test basic_sraPos("sra", "Verify that R8 = R9 arith>> 5 and R9 unchanged when"
+    " the most significant bit in R9 is NOT one", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(0, 9, 8, 19, 3).data);
+  writeReg(testCPU, 9, 0x0ABA1A34);
+  basic_sraPos.checkReg(8, 0x157);
+  basic_sraPos.checkReg(9, 0x0ABA1A34);
+  basic_sraPos.perform_test(testCPU, testMem);
 
   test basic_sllv("sllv", "Verify that R8 = R9 << R10 and R9 R10 unchanged", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 9, 8, 0, 4).data);
@@ -255,6 +263,18 @@ int main(){
   mult_negative.checkReg(9, 0xE651FDAA);
   mult_negative.perform_test(testCPU, testMem);
 
+  writeReg(testCPU, 11, 0);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
+  mips_error divu_error = mips_cpu_step(testCPU);
+  int divu_zero = mips_test_begin_test("divu");
+  if (divu_error == mips_Success){
+    mips_test_end_test(divu_zero, 1, "Checking that no exception is thrown "
+      "when dividing by 0");
+  } else {
+    mips_test_end_test(divu_zero, 0, "Checking that no exception is thrown "
+      "when dividing by 0");
+  }
+
   test basic_divu("divu", "Check hi and lo after R10 / R11", 5);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
   writeMem(testMem, get_pc(testCPU) + 4,
@@ -297,6 +317,18 @@ int main(){
   div_negop2.checkReg(8, 0xB);
   div_negop2.checkReg(9, 0xfff31e2e);
   div_negop2.perform_test(testCPU, testMem);
+
+  writeReg(testCPU, 11, 0);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 26).data);
+  mips_error div_error = mips_cpu_step(testCPU);
+  int div_zero = mips_test_begin_test("div");
+  if (div_error == mips_Success){
+    mips_test_end_test(div_zero, 1, "Checking that no exception is thrown "
+      "when dividing by 0");
+  } else {
+    mips_test_end_test(div_zero, 0, "Checking that no exception is thrown "
+      "when dividing by 0");
+  }
 
   test basic_add("add",
     "Verify the result of an add where there is no overflow", 1);
@@ -1126,6 +1158,7 @@ int main(){
   basic_sw.checkMem(552, 0x01590624);
   basic_sw.perform_test(testCPU, testMem);
 
+  // This test acts as a
   // Expected number of steps is 5496 for 12th fibonacci number
   test fib("<internal>", "Check that the CPU can calculate the 12th fibonacci "
     "number using the below program", 5496);
