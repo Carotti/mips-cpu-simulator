@@ -1,7 +1,5 @@
 #include "test_mips.h"
 
-#include <bitset>
-
 int main(){
 
   mips_test_begin_suite();

@@ -1,11 +1,7 @@
 #include "mips.h"
 #include "mips_instruction_test.h"
 
-#include <iostream>
 #include <vector>
-#include <fstream>
-#include <string>
-#include <sstream>
 
 using namespace std;
 

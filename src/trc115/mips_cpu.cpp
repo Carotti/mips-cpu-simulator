@@ -1,8 +1,5 @@
 #include"mips_cpu_impl.h"
 
-#include <iostream>
-#include <bitset>
-
 // Wherever a handle is passed to a function, it is required to check whether
 // the handle is valid otherwise segmentation errors occur (!!)
 
@@ -182,7 +179,7 @@ mips_error mips_cpu_step(mips_cpu_h state){
 
   // Assume the instruction is invalid
   mips_error exception = mips_ExceptionInvalidInstruction;
-  
+
   switch(nextInstruction.type){
     case 'r':
       exception = exec_r(state, nextInstruction);
