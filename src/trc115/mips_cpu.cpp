@@ -27,6 +27,7 @@ mips_error mips_cpu_reset(mips_cpu_h state){
   // Resetting the CPU:
   //  - Sets all registers to 0
   //  - Sets the program counter to 0
+  //  - sets pcNew to 4
   //  - Doesn't affect memory
 
   //
@@ -43,7 +44,7 @@ mips_error mips_cpu_reset(mips_cpu_h state){
   state->hi = 0;
   state->lo = 0;
 
-  state->delaySlot = 0;
+  state->pcNew = 4;
 
   return mips_Success;
 }
@@ -163,7 +164,8 @@ mips_error mips_cpu_step(mips_cpu_h state){
 
   if(state->debugLevel >= 1){
     fprintf(state->debugDest, "--------------------------------------\n");
-    fprintf(state->debugDest, "About to execute '%c' type instruction\nProgram counter = %d\n", nextInstruction.type, state->pc);
+    fprintf(state->debugDest, "About to execute '%c' type instruction\nProgram "
+      "counter = %d\n", nextInstruction.type, state->pc);
   }
 
   if(state->debugLevel >= 2){
@@ -173,14 +175,8 @@ mips_error mips_cpu_step(mips_cpu_h state){
     }
   }
 
-  if (state->delaySlot > 0){
-    mips_cpu_set_pc(state, state->delaySlot);
-    state->delaySlot = 0;
-  } else {
-    uint32_t oldPc;
-    mips_cpu_get_pc(state, &oldPc);
-    mips_cpu_set_pc(state, oldPc + 4);
-  }
+  mips_cpu_set_pc(state, state->pcNew);
+  state->pcNew += 4;
 
   switch(nextInstruction.type){
     case 'r':
@@ -258,12 +254,12 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 8:
       // jr
-      state->delaySlot = op1;
+      state->pcNew = op1;
       return mips_Success;
       break;
     case 9:
       // jalr
-      state->delaySlot = op1;
+      state->pcNew = op1;
       return mips_cpu_set_register(state, instrR.dest, oldPc + 4);
       break;
     case 12:
@@ -295,8 +291,10 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
     case 24:
       // mul
       // sign extend the operands then calculate the result
-      state->hi = (((int64_t(op1) << 32) >> 32) * ((int64_t(op2) << 32) >> 32)) >> 32;
-      state->lo = ((int64_t(op1) << 32) >> 32) * ((int64_t(op2) << 32) >> 32);
+      state->hi = (((int64_t(op1) << 32) >> 32) *
+        ((int64_t(op2) << 32) >> 32)) >> 32;
+      state->lo = ((int64_t(op1) << 32) >> 32) *
+        ((int64_t(op2) << 32) >> 32);
       return mips_Success;
       break;
     case 25:
@@ -403,7 +401,8 @@ mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
   mips_cpu_get_pc(state, &oldPc);
 
   // Both j and jal instructions do the following
-  state->delaySlot = (oldPc & 0xF0000000) | ((instrJ.address & 0x03FFFFFF) << 2);
+  state->pcNew = (oldPc & 0xF0000000) |
+    ((instrJ.address & 0x03FFFFFF) << 2);
 
   if (instrJ.opCode == 3){
     // jal instruction, set return address
@@ -419,6 +418,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   instruction_impl_i instrI = instruction_impl_i(instruction.data);
   if(state->debugLevel >= 2){
     fprintf(state->debugDest, "Raw Instruction = %d\n", instrI.data);
+    fprintf(state->debugDest, "OpCode = %d\n", instrI.opCode);
     fprintf(state->debugDest, "Source = R%d\n", instrI.source);
     fprintf(state->debugDest, "Destination = R%d\n", instrI.dest);
     fprintf(state->debugDest, "Immediate = %d\n", instrI.immediate);
@@ -443,11 +443,14 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   // Calculate the effective address, used for memory instructions
   uint32_t effectiveAddress = op1 + signExtImmediate;
 
-  // Read the word enclosed around the effective address
-  uint32_t memRead;
-  mips_mem_read(state->mem, (effectiveAddress / 4) * 4, 4, (uint8_t*)&memRead);
-  // Correct the endianness
-  byte_swap(memRead);
+  uint32_t memRead = 0;
+  if ((instrI.opCode < 47) && (instrI.opCode > 31)) {
+    // Instruction reads/writes to memory...
+    // Read the word enclosed around the effective address
+    mips_mem_read(state->mem, (effectiveAddress / 4)* 4, 4, (uint8_t*)&memRead);
+    // Correct the endianness
+    byte_swap(memRead);
+  }
 
   switch(instrI.opCode){
     case 1:
@@ -455,12 +458,12 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       if (instrI.dest == 0 || instrI.dest == 16){
         // bltz, or bltzal
         if (op1s < 0){
-          state->delaySlot = oldPc + (signExtImmediate << 2);
+          state->pcNew = oldPc + (signExtImmediate << 2);
         }
       } else if (instrI.dest == 1 || instrI.dest == 17){
         // bgez or bgezal
         if (op1s >= 0){
-          state->delaySlot = oldPc + (signExtImmediate << 2);
+          state->pcNew = oldPc + (signExtImmediate << 2);
         }
       } else {
         return mips_ExceptionInvalidInstruction;
@@ -473,35 +476,37 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
     case 4:
       // beq
       if (op1 == op2){
-        state->delaySlot = oldPc + (signExtImmediate << 2);
+        state->pcNew = oldPc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 5:
       // bne
       if (op1 != op2){
-        state->delaySlot = oldPc + (signExtImmediate << 2);
+        state->pcNew = oldPc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 6:
       // blez
       if (signed(op1) <= 0){
-        state->delaySlot = oldPc + (signExtImmediate << 2);
+        state->pcNew = oldPc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 7:
       // bgtz
       if (signed(op1) > 0){
-        state->delaySlot = oldPc + (signExtImmediate << 2);
+        state->pcNew = oldPc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 8:
       // addi
-      if(((op1s > 0) && (signExtImmediate > 0) && (op1s + signExtImmediate <= 0)) ||
-        ((op1s < 0) && (signExtImmediate < 0) && (op1s + signExtImmediate >= 0))){
+      if(((op1s > 0) && (signExtImmediate > 0) &&
+        (op1s + signExtImmediate <= 0)) ||
+        ((op1s < 0) && (signExtImmediate < 0) &&
+        (op1s + signExtImmediate >= 0))){
         // If both operands are +ve and result is -ve
         // OR If both operands are -ve and result is +ve
         return mips_ExceptionArithmeticOverflow;
@@ -530,24 +535,31 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 12:
       // andi
-      return mips_cpu_set_register(state, instrI.dest, op1 & uint32_t(instrI.immediate));
+      return mips_cpu_set_register(state, instrI.dest,
+        op1 & uint32_t(instrI.immediate));
       break;
     case 13:
       // ori
-      return mips_cpu_set_register(state, instrI.dest, op1 | uint32_t(instrI.immediate));
+      return mips_cpu_set_register(state, instrI.dest,
+        op1 | uint32_t(instrI.immediate));
       break;
     case 14:
       // xori
-      return mips_cpu_set_register(state, instrI.dest, op1 ^ uint32_t(instrI.immediate));
+      return mips_cpu_set_register(state, instrI.dest,
+        op1 ^ uint32_t(instrI.immediate));
       break;
     case 15:
       // lui
-      return mips_cpu_set_register(state, instrI.dest, uint32_t(instrI.immediate) << 16);
+      return mips_cpu_set_register(state, instrI.dest,
+        uint32_t(instrI.immediate) << 16);
       break;
     case 32:{
       // lb
-      // Store the sign extended byte after getting the correct part from the word read from memory
-      return mips_cpu_set_register(state, instrI.dest, (int32_t((memRead >> (8 * (3 - (effectiveAddress % 4)))) & 0xFF) << 24) >> 24);
+      // Store the sign extended byte after getting the correct part from the
+      // word read from memory
+      return mips_cpu_set_register(state, instrI.dest,
+        (int32_t((memRead >> (8 * (3 - (effectiveAddress % 4)))) & 0xFF)
+        << 24) >> 24);
       break;}
     case 33:
       // lh
@@ -555,12 +567,18 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
         // Unaligned halfword, return invalid address exception
         return mips_ExceptionInvalidAddress;
       }
-      // Store the sign extended half-word after getting the correct part from the word read from memory
-      return mips_cpu_set_register(state, instrI.dest, (int32_t((memRead >> (8 * (2 - (effectiveAddress % 4)))) & 0xFFFF) << 16) >> 16);
+      // Store the sign extended half-word after getting the correct part from
+      // the word read from memory
+      return mips_cpu_set_register(state, instrI.dest,
+        (int32_t((memRead >> (8 * (2 - (effectiveAddress % 4)))) & 0xFFFF)
+        << 16) >> 16);
       break;
     case 34:
       // lwl
-      return mips_cpu_set_register(state, instrI.dest, (memRead << (8 * (effectiveAddress % 4))) | (op2 & (uint32_t(0xFFFFFFFF) >> (32 - (8 * (effectiveAddress % 4))))));
+      return mips_cpu_set_register(state, instrI.dest,
+        (memRead << (8 * (effectiveAddress % 4))) |
+        (op2 & (uint32_t(0xFFFFFFFF) >>
+        (32 - (8 * (effectiveAddress % 4))))));
       break;
     case 35:
       // lw
@@ -572,7 +590,8 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       break;
     case 36:
       // lbu
-      return mips_cpu_set_register(state, instrI.dest, (memRead >> (8 * (3 - (effectiveAddress % 4)))) & 0xFF);
+      return mips_cpu_set_register(state, instrI.dest,
+        (memRead >> (8 * (3 - (effectiveAddress % 4)))) & 0xFF);
       break;
     case 37:
       // lhu
@@ -580,30 +599,46 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
         // Unaligned halfword, return invalid address exception
         return mips_ExceptionInvalidAddress;
       }
-      // Store the half-word after getting the correct part from the word read from memory
-      return mips_cpu_set_register(state, instrI.dest, (memRead >> (8 * (2 - (effectiveAddress % 4)))) & 0xFFFF);
+      // Store the half-word after getting the correct part from the word read
+      // from memory
+      return mips_cpu_set_register(state, instrI.dest,
+        (memRead >> (8 * (2 - (effectiveAddress % 4)))) & 0xFFFF);
       break;
     case 38:
       // lwr
-      return mips_cpu_set_register(state, instrI.dest, (memRead >> (24 - (8 * (effectiveAddress % 4)))) | (op2 & (uint32_t(0xFFFFFFFF) << (8 + (8 * (effectiveAddress % 4))))));
+      return mips_cpu_set_register(state, instrI.dest,
+        (memRead >> (24 - (8 * (effectiveAddress % 4)))) |
+        (op2 & (uint32_t(0xFFFFFFFF) << (8 + (8 * (effectiveAddress % 4))))));
       break;
     case 40:{
       // sb
-      uint32_t memWrite = ((op2 & 0xFF) << (8 * (3 - (effectiveAddress % 4)))) | (memRead & ~(0xFF000000ul >> (8 * (effectiveAddress % 4))));
+      uint32_t memWrite = ((op2 & 0xFF) << (8 * (3 - (effectiveAddress % 4)))) |
+        (memRead & ~(0xFF000000ul >> (8 * (effectiveAddress % 4))));
       byte_swap(memWrite);
-      return mips_mem_write(state->mem, 4 * (effectiveAddress / 4), 4, (uint8_t*)&memWrite);
+      return mips_mem_write(state->mem, 4 * (effectiveAddress / 4), 4,
+        (uint8_t*)&memWrite);
       break;}
-    case 41:
+    case 41:{
       // sh
-      return mips_ErrorNotImplemented;
-      break;
+      if ((effectiveAddress % 2) != 0){
+        return mips_ExceptionInvalidAddress;
+      }
+      uint32_t memWrite = ((op2 & 0xFFFF) << (8 * (2 - (effectiveAddress % 4))))
+      | (memRead & (0x0000FFFF << (8 * (effectiveAddress % 4))));
+      byte_swap(memWrite);
+      return mips_mem_write(state->mem, 4 * (effectiveAddress / 4), 4,
+        (uint8_t*)&memWrite);
+      break;}
     case 42:
-      // swl
       return mips_ErrorNotImplemented;
       break;
     case 43:
       // sw
-      return mips_ErrorNotImplemented;
+      if ((effectiveAddress % 4) != 0){
+        return mips_ExceptionInvalidAddress;
+      }
+      byte_swap(op2);
+      return mips_mem_write(state->mem, effectiveAddress, 4, (uint8_t*)&op2);
       break;
     case 46:
       // swr
@@ -617,5 +652,9 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
 }
 
 void byte_swap(uint32_t &value){
-  value = (value<<24) | ((value>>8)&0x0000FF00) | ((value<<8)&0x00FF0000) | (value>>24);
+  value =
+    (value<<24) |
+    ((value>>8)&0x0000FF00) |
+    ((value<<8)&0x00FF0000) |
+    (value>>24);
 }
