@@ -9,7 +9,6 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
-  /*
   // Check get and set for R1 to R31
   for (unsigned i = 1; i < 32; i++){
     test cpu_getSetReg("<internal>", "Verify that the value from a register is "
@@ -74,8 +73,6 @@ int main(){
   writeReg(testCPU, 8, 0x1AFAC3B0);
   reg_all.checkReg(8, 0x35F58760);
   reg_all.perform_test(testCPU, testMem);
-
-  */
 
   test basic_sll("sll", "Verify that R8 = R9 << 5 and R9 unchanged", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(0, 9, 8, 5, 0).data);
@@ -1220,9 +1217,6 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
 
   int testID = mips_test_begin_test(testName);
 
-  fprintf(stderr, "-------------------------------------------\n");
-  fprintf(stderr, "[Test %d] '%s' - %s\n", testID, testName, testDescription);
-
   // Assume the test passes
   success = 1;
 
@@ -1270,8 +1264,8 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
   if (success == 0){
     // Test has failed
     fprintf(stderr, "[Test %d] FAILED\n", testID);
-  } else if (success == 1){
-    fprintf(stderr, "[Test %d] PASSED\n", testID);
+    fprintf(stderr, "[Test %d] '%s' - %s\n", testID, testName, testDescription);
+    fprintf(stderr, "-------------------------------------------\n");
   }
 
   mips_test_end_test(testID, success, testDescription);
