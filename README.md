@@ -79,6 +79,9 @@ that matches these patterns will get compiled in:
 
 - `src/[your_login]/test_mips_*/*.cpp` (if any)
 
+_Original makefile also included another pattern (thanks to @lorenzo2897, see
+  [issue #21](https://github.com/m8pple/arch2-2016-cw/issues/21)._
+
 
 You can also add your own private header files (often a good idea),
 which should be part of the submitted zip file,
@@ -186,7 +189,7 @@ There are two submission deadlines, one soft, one hard:
 - Friday 21st October 22:00: deadline for formative (ungraded)
   assessment. If you submit a version by this deadline, it
   will be put through a subset of the assessment. The
-  results (but not a grade), will be returned on Monday 21st.
+  results (but not a grade), will be returned on Monday 24th.
   Submission is not required, but is obviously encouraged.
 
 - Friday 28th October 22:00: deadline for summative (graded)

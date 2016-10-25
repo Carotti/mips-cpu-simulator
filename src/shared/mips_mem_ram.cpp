@@ -18,23 +18,23 @@ struct mips_mem_provider
 extern "C" mips_mem_h mips_mem_create_ram(
 	uint32_t cbMem	//!< Total number of bytes of ram
 ){
-	if(cbMem>0x10000000){
+	if(cbMem>0x20000000){
 		return 0; // No more than 256MB of RAM
 	}
-	
+
 	uint8_t *data=(uint8_t*)malloc(cbMem);
 	if(data==0)
 		return 0;
-	
+
 	struct mips_mem_provider *mem=(struct mips_mem_provider*)malloc(sizeof(struct mips_mem_provider));
 	if(mem==0){
 		free(data);
 		return 0;
 	}
-	
+
 	mem->length=cbMem;
 	mem->data=data;
-	
+
 	return mem;
 }
 
@@ -45,22 +45,22 @@ static mips_error mips_mem_read_write(
     uint32_t length,
     uint8_t *dataOut
 )
-{	
+{
 	if(mem==0){
 		return mips_ErrorInvalidHandle;
 	}
-	
+
 	if( (length!=1) && (length!=2) && (length!=4) ){
 		return mips_ExceptionInvalidLength;
 	}
-	
+
 	if(0 != (address % length) ){
 		return mips_ExceptionInvalidAlignment;
 	}
-	if((address+length) > mem->length){	// A subtle bug here, maybe?
+	if(((address+length) > mem->length) || (address > (UINT32_MAX - length))){
 		return mips_ExceptionInvalidAddress;
 	}
-	
+
 	if(write){
 		for(unsigned i=0; i<length; i++){
 			mem->data[address+i]=dataOut[i];
@@ -79,7 +79,7 @@ mips_error mips_mem_read(
     uint32_t length,	//!< Number of bytes to transfer
     uint8_t *dataOut	//!< Receives the target bytes
 )
-{	
+{
 	return mips_mem_read_write(
 		false,	// we want to read
 		mem,

@@ -9,6 +9,7 @@ int main(){
   mips_mem_h testMem = mips_mem_create_ram(4096);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
+  /*
   // Check get and set for R1 to R31
   for (unsigned i = 1; i < 32; i++){
     test cpu_getSetReg("<internal>", "Verify that the value from a register is "
@@ -73,6 +74,8 @@ int main(){
   writeReg(testCPU, 8, 0x1AFAC3B0);
   reg_all.checkReg(8, 0x35F58760);
   reg_all.perform_test(testCPU, testMem);
+
+  */
 
   test basic_sll("sll", "Verify that R8 = R9 << 5 and R9 unchanged", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(0, 9, 8, 5, 0).data);
@@ -140,6 +143,7 @@ int main(){
   basic_jr.checkReg(9, 0x000000A4);
   basic_jr.perform_test(testCPU, testMem);
 
+
   test branch_delay_jr("<internal>", "Testing that the instruction after jr is "
     "executed before the branch is taken", 0);
   branch_delay_jr.checkReg(8, 0x00000052);
@@ -151,15 +155,14 @@ int main(){
   // R8 = R9 >> 3 in the branch delay slot
   writeMem(testMem, get_pc(testCPU) + 4,
     instruction_impl_r(0, 9, 8, 3, 2).data);
-  basic_jalr.checkReg(9, 0x000000A4);
-  basic_jalr.checkReg(255, 0x000000A4);
-  basic_jalr.checkReg(9, 0x000000A4);
-  basic_jalr.checkReg(31, 0x000000AC);
+  writeReg(testCPU, 9, 0x000000B4);
+  basic_jalr.checkReg(255, 0x000000B4);
+  basic_jalr.checkReg(31, get_pc(testCPU) + 8);
   basic_jalr.perform_test(testCPU, testMem);
 
   test branch_delay_jalr("<internal>", "Testing that the instruction after jalr"
     " is executed before the branch is taken", 0);
-  branch_delay_jalr.checkReg(8, 0x00000014);
+  branch_delay_jalr.checkReg(8, 0x00000016);
   branch_delay_jalr.perform_test(testCPU, testMem);
 
   // nops after since:
@@ -1015,7 +1018,7 @@ int main(){
   writeReg(testCPU, 9, 520);
   writeReg(testCPU, 8, 0xA4C3B177);
   mips_error lh_unalignedError = mips_cpu_step(testCPU);
-  if (lh_unalignedError == mips_ExceptionInvalidAddress){
+  if (lh_unalignedError == mips_ExceptionInvalidAlignment){
     mips_test_end_test(lh_unaligned, 1, "Check that an unaligned half-word "
       "produces an Invalid Address Exception");
   } else {
@@ -1057,7 +1060,7 @@ int main(){
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(35, 9, 8, 0).data);
   writeReg(testCPU, 9, 474);
   mips_error lw_unalignedError = mips_cpu_step(testCPU);
-  if (lw_unalignedError == mips_ExceptionInvalidAddress){
+  if (lw_unalignedError == mips_ExceptionInvalidAlignment){
     mips_test_end_test(lw_unaligned, 1, "Check that an unaligned word produces "
       "an Invalid Address Exception");
   } else {
@@ -1085,7 +1088,7 @@ int main(){
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(37, 9, 8, 3).data);
   writeReg(testCPU, 9, 574);
   mips_error lhu_unalignedError = mips_cpu_step(testCPU);
-  if (lhu_unalignedError == mips_ExceptionInvalidAddress){
+  if (lhu_unalignedError == mips_ExceptionInvalidAlignment){
     mips_test_end_test(lhu_unaligned, 1, "Check that an unaligned half-word "
       "produces an Invalid Address Exception");
   } else {
@@ -1217,6 +1220,9 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
 
   int testID = mips_test_begin_test(testName);
 
+  fprintf(stderr, "-------------------------------------------\n");
+  fprintf(stderr, "[Test %d] '%s' - %s\n", testID, testName, testDescription);
+
   // Assume the test passes
   success = 1;
 
@@ -1234,6 +1240,8 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
     mips_mem_read(mem, memCheck[i].address, 4, (uint8_t*)&testValue);
     byte_swap_test(testValue);
     if (testValue != memCheck[i].value) {
+        fprintf(stderr, "[Test %d] Mem[0x%X] is 0x%X - Expected 0x%X\n",
+          testID, memCheck[i].address, testValue, memCheck[i].value);
         success = 0;
     }
   }
@@ -1243,12 +1251,27 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
     uint32_t testValue = 0;
     if (regCheck[i].index < 32){
       mips_cpu_get_register(state, unsigned(regCheck[i].index), &testValue);
+      if (testValue != regCheck[i].value){
+        fprintf(stderr, "[Test %d] Reg[%d] is 0x%X - Expected 0x%X\n",
+          testID, regCheck[i].index, testValue, regCheck[i].value);
+        success = 0;
+      }
     } else if (regCheck[i].index == 255){
       mips_cpu_get_pc(state, &testValue);
+      if (testValue != regCheck[i].value){
+        fprintf(stderr, "[Test %d] PC is 0x%X - Expected 0x%X\n",
+          testID, testValue, regCheck[i].value);
+        success = 0;
+      }
     }
-    if (testValue != regCheck[i].value){
-      success = 0;
-    }
+
+  }
+
+  if (success == 0){
+    // Test has failed
+    fprintf(stderr, "[Test %d] FAILED\n", testID);
+  } else if (success == 1){
+    fprintf(stderr, "[Test %d] PASSED\n", testID);
   }
 
   mips_test_end_test(testID, success, testDescription);

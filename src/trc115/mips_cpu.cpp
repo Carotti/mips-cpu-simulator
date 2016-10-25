@@ -93,6 +93,7 @@ mips_error mips_cpu_set_pc(mips_cpu_h state, uint32_t pc){
     return mips_ErrorInvalidHandle;
   }
   state->pc = pc;
+  state->pcNew = pc + 4;
 
   return mips_Success;
 }
@@ -176,7 +177,6 @@ mips_error mips_cpu_step(mips_cpu_h state){
   }
 
   mips_cpu_set_pc(state, state->pcNew);
-  state->pcNew += 4;
 
   switch(nextInstruction.type){
     case 'r':
@@ -223,9 +223,6 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
   int32_t op1s = op1;
   int32_t op2s = op2;
 
-  uint32_t oldPc;
-  mips_cpu_get_pc(state, &oldPc);
-
   // perform the operation based on the instruction
   switch(instrR.function){
     case 0:
@@ -260,7 +257,7 @@ mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
     case 9:
       // jalr
       state->pcNew = op1;
-      return mips_cpu_set_register(state, instrR.dest, oldPc + 4);
+      return mips_cpu_set_register(state, instrR.dest, state->pc + 4);
       break;
     case 12:
       // syscall
@@ -399,18 +396,13 @@ mips_error exec_j(mips_cpu_h state, instruction_impl &instruction){
     fprintf(state->debugDest, "Address = %d\n", instrJ.address);
   }
 
-  uint32_t oldPc;
-  mips_cpu_get_pc(state, &oldPc);
-
   // Both j and jal instructions do the following
-  state->pcNew = (oldPc & 0xF0000000) |
+  state->pcNew = (state->pc & 0xF0000000) |
     ((instrJ.address & 0x03FFFFFF) << 2);
 
   if (instrJ.opCode == 3){
     // jal instruction, set return address
-    uint32_t oldPc;
-    mips_cpu_get_pc(state, &oldPc);
-    mips_cpu_set_register(state, 31, oldPc + 4);
+    mips_cpu_set_register(state, 31, state->pc + 4);
   }
   return mips_Success;
 }
@@ -438,10 +430,6 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   // A signed 32 bit sign extended version of the immediate
   int32_t signExtImmediate = int32_t(instrI.immediate << 16) >> 16;
 
-  // Store the old value of the PC
-  uint32_t oldPc;
-  mips_cpu_get_pc(state, &oldPc);
-
   // Calculate the effective address, used for memory instructions
   uint32_t effectiveAddress = op1 + signExtImmediate;
 
@@ -449,7 +437,11 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
   if ((instrI.opCode < 47) && (instrI.opCode > 31)) {
     // Instruction reads/writes to memory...
     // Read the word enclosed around the effective address
-    mips_mem_read(state->mem, (effectiveAddress / 4)* 4, 4, (uint8_t*)&memRead);
+    mips_error attemptRead = mips_mem_read(state->mem,
+      (effectiveAddress / 4)* 4, 4, (uint8_t*)&memRead);
+    if (attemptRead != mips_Success){
+      return attemptRead;
+    }
     // Correct the endianness
     byte_swap(memRead);
   }
@@ -460,46 +452,46 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       if (instrI.dest == 0 || instrI.dest == 16){
         // bltz, or bltzal
         if (op1s < 0){
-          state->pcNew = oldPc + (signExtImmediate << 2);
+          state->pcNew = state->pc + (signExtImmediate << 2);
         }
       } else if (instrI.dest == 1 || instrI.dest == 17){
         // bgez or bgezal
         if (op1s >= 0){
-          state->pcNew = oldPc + (signExtImmediate << 2);
+          state->pcNew = state->pc + (signExtImmediate << 2);
         }
       } else {
-        return mips_ExceptionInvalidInstruction;
+        return mips_ExceptionInvalidAlignment;
       }
       if(instrI.dest == 16 || instrI.dest == 17){
         // bltzal or bgezal - set R31 unconditionally
-        mips_cpu_set_register(state, 31, oldPc + 4);
+        mips_cpu_set_register(state, 31, state->pc + 4);
       }
       return mips_Success;
     case 4:
       // beq
       if (op1 == op2){
-        state->pcNew = oldPc + (signExtImmediate << 2);
+        state->pcNew = state->pc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 5:
       // bne
       if (op1 != op2){
-        state->pcNew = oldPc + (signExtImmediate << 2);
+        state->pcNew = state->pc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 6:
       // blez
       if (signed(op1) <= 0){
-        state->pcNew = oldPc + (signExtImmediate << 2);
+        state->pcNew = state->pc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
     case 7:
       // bgtz
       if (signed(op1) > 0){
-        state->pcNew = oldPc + (signExtImmediate << 2);
+        state->pcNew = state->pc + (signExtImmediate << 2);
       }
       return mips_Success;
       break;
@@ -567,7 +559,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       // lh
       if ((effectiveAddress % 2) != 0){
         // Unaligned halfword, return invalid address exception
-        return mips_ExceptionInvalidAddress;
+        return mips_ExceptionInvalidAlignment;
       }
       // Store the sign extended half-word after getting the correct part from
       // the word read from memory
@@ -586,7 +578,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       // lw
       if ((effectiveAddress % 4) != 0){
         // Unaligned word, return invalid address exception
-        return mips_ExceptionInvalidAddress;
+        return mips_ExceptionInvalidAlignment;
       }
       return mips_cpu_set_register(state, instrI.dest, memRead);
       break;
@@ -599,7 +591,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
       // lhu
       if ((effectiveAddress % 2) != 0){
         // Unaligned halfword, return invalid address exception
-        return mips_ExceptionInvalidAddress;
+        return mips_ExceptionInvalidAlignment;
       }
       // Store the half-word after getting the correct part from the word read
       // from memory
@@ -623,7 +615,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
     case 41:{
       // sh
       if ((effectiveAddress % 2) != 0){
-        return mips_ExceptionInvalidAddress;
+        return mips_ExceptionInvalidAlignment;
       }
       uint32_t memWrite = ((op2 & 0xFFFF) << (8 * (2 - (effectiveAddress % 4))))
       | (memRead & (0x0000FFFF << (8 * (effectiveAddress % 4))));
@@ -637,7 +629,7 @@ mips_error exec_i(mips_cpu_h state, instruction_impl &instruction){
     case 43:
       // sw
       if ((effectiveAddress % 4) != 0){
-        return mips_ExceptionInvalidAddress;
+        return mips_ExceptionInvalidAlignment;
       }
       byte_swap(op2);
       return mips_mem_write(state->mem, effectiveAddress, 4, (uint8_t*)&op2);
