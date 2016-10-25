@@ -176,27 +176,31 @@ mips_error mips_cpu_step(mips_cpu_h state){
     }
   }
 
+  uint32_t oldpc = state->pc;
+  uint32_t oldpcNew = state->pcNew;
   mips_cpu_set_pc(state, state->pcNew);
 
+  // Assume the instruction is invalid
+  mips_error exception = mips_ExceptionInvalidInstruction;
+  
   switch(nextInstruction.type){
     case 'r':
-      return exec_r(state, nextInstruction);
+      exception = exec_r(state, nextInstruction);
       break;
     case 'j':
-      return exec_j(state, nextInstruction);
+      exception = exec_j(state, nextInstruction);
       break;
     case 'i':
-      return exec_i(state, nextInstruction);
+      exception = exec_i(state, nextInstruction);
       break;
-    case 'u':
-      // Instruction is invalid, return with error
-      return mips_ExceptionInvalidInstruction;
-      break;
-    default:
-      // If the type is anything other than these, something has gone very wrong
-      // in reality, this can never be the case but it removed the warning!
-      return mips_ExceptionInvalidInstruction;
   }
+
+  if (exception != mips_Success){
+    // An exception has occured, don't advance pc
+    state->pc = oldpc;
+    state->pcNew = oldpcNew;
+  }
+  return exception;
 }
 
 mips_error exec_r(mips_cpu_h state, instruction_impl &instruction){
