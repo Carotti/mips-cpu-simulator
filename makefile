@@ -1,6 +1,6 @@
 # Your login. For example, mine is dt10. Yours
 # won't be eie2ugs...
-LOGIN ?= trc115
+LOGIN ?= lel
 
 # Turn on all warnings
 CPPFLAGS += -W -Wall

@@ -4,7 +4,8 @@ int main(){
 
   mips_test_begin_suite();
 
-  mips_mem_h testMem = mips_mem_create_ram(4096);
+  // Create 512MB of RAM - PHWOAAAR (used to test J and JAL instructions)
+  mips_mem_h testMem = mips_mem_create_ram(512000000);
   mips_cpu_h testCPU = mips_cpu_create(testMem);
 
   // Check get and set for R1 to R31
@@ -94,7 +95,7 @@ int main(){
   basic_sra.perform_test(testCPU, testMem);
 
   test basic_sraPos("sra", "Verify that R8 = R9 arith>> 5 and R9 unchanged when"
-    " the most significant bit in R9 is NOT one", 1);
+    " R9 is positive", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(0, 9, 8, 19, 3).data);
   writeReg(testCPU, 9, 0x0ABA1A34);
   basic_sraPos.checkReg(8, 0x157);
@@ -110,9 +111,10 @@ int main(){
   basic_sllv.checkReg(10, 5);
   basic_sllv.perform_test(testCPU, testMem);
 
-  // Registers 9 and 10 already set in previous test
   test basic_srlv("srlv", "Verify that R8 = R9 >> R10 and R9 R10 unchanged", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 9, 8, 0, 6).data);
+  writeReg(testCPU, 9, 0xFBABABAB);
+  writeReg(testCPU, 10, 5);
   basic_srlv.checkReg(8, 0x7DD5D5D);
   basic_srlv.checkReg(9, 0xFBABABAB);
   basic_srlv.checkReg(10, 5);
@@ -128,37 +130,40 @@ int main(){
   basic_srav.checkReg(10, 5);
   basic_srav.perform_test(testCPU, testMem);
 
-  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged", 2);
+  test basic_sravPos("srav",
+    "verify that R8 = R9 >> R10 and R9 R10 unchanged when R9 is positive", 1);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 9, 8, 0, 7).data);
+  writeReg(testCPU, 9, 0x74BABBC1);
+  writeReg(testCPU, 10, 9);
+  basic_sravPos.checkReg(8, 0x003A5D5D);
+  basic_sravPos.checkReg(9, 0x74BABBC1);
+  basic_sravPos.checkReg(10, 9);
+  basic_sravPos.perform_test(testCPU, testMem);
+
+  test basic_jr("jr", "Verify that pc = R9 and R9 unchanged as well as that the"
+    " instruction in the branch delay slot is executed", 2);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 0, 0, 0, 8).data);
   // R8 = R9 >> 1 in the branch delay slot
   writeMem(testMem, get_pc(testCPU) + 4,
     instruction_impl_r(0, 9, 8, 1, 2).data);
   writeReg(testCPU, 9, 0x000000A4);
   basic_jr.checkReg(255, 0x000000A4);
+  basic_jr.checkReg(8, 0x00000052);
   basic_jr.checkReg(9, 0x000000A4);
   basic_jr.perform_test(testCPU, testMem);
 
-
-  test branch_delay_jr("<internal>", "Testing that the instruction after jr is "
-    "executed before the branch is taken", 0);
-  branch_delay_jr.checkReg(8, 0x00000052);
-  branch_delay_jr.perform_test(testCPU, testMem);
-
   test basic_jalr("jalr",
-    "Verify that pc = R9, R1 = R9 + 8 and R9 unchanged", 2);
+    "Verify that pc = R9, R1 = R9 + 8 and R9 unchangedas well as that the"
+    " instruction in the branch delay slot is executed and R31 set", 2);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 0, 31, 0, 9).data);
   // R8 = R9 >> 3 in the branch delay slot
   writeMem(testMem, get_pc(testCPU) + 4,
     instruction_impl_r(0, 9, 8, 3, 2).data);
   writeReg(testCPU, 9, 0x000000B4);
   basic_jalr.checkReg(255, 0x000000B4);
+  basic_jalr.checkReg(8, 0x00000016);
   basic_jalr.checkReg(31, get_pc(testCPU) + 8);
   basic_jalr.perform_test(testCPU, testMem);
-
-  test branch_delay_jalr("<internal>", "Testing that the instruction after jalr"
-    " is executed before the branch is taken", 0);
-  branch_delay_jalr.checkReg(8, 0x00000016);
-  branch_delay_jalr.perform_test(testCPU, testMem);
 
   // nops after since:
   // "Reads of the HI or LO special registers must be separated from
@@ -261,18 +266,6 @@ int main(){
   mult_negative.checkReg(9, 0xE651FDAA);
   mult_negative.perform_test(testCPU, testMem);
 
-  writeReg(testCPU, 11, 0);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
-  mips_error divu_error = mips_cpu_step(testCPU);
-  int divu_zero = mips_test_begin_test("divu");
-  if (divu_error == mips_Success){
-    mips_test_end_test(divu_zero, 1, "Checking that no exception is thrown "
-      "when dividing by 0");
-  } else {
-    mips_test_end_test(divu_zero, 0, "Checking that no exception is thrown "
-      "when dividing by 0");
-  }
-
   test basic_divu("divu", "Check hi and lo after R10 / R11", 5);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 27).data);
   writeMem(testMem, get_pc(testCPU) + 4,
@@ -299,6 +292,8 @@ int main(){
     instruction_impl_r(0, 0, 0, 0, 0).data);
   writeMem(testMem, get_pc(testCPU) + 16,
     instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeReg(testCPU, 10, 0xF1489B44);
+  writeReg(testCPU, 11, 0x000000A1);
   basic_div.checkReg(8, 0xffffff87);
   basic_div.checkReg(9, 0xffe8999d);
   basic_div.perform_test(testCPU, testMem);
@@ -316,18 +311,6 @@ int main(){
   div_negop2.checkReg(9, 0xfff31e2e);
   div_negop2.perform_test(testCPU, testMem);
 
-  writeReg(testCPU, 11, 0);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_r(10, 11, 0, 0, 26).data);
-  mips_error div_error = mips_cpu_step(testCPU);
-  int div_zero = mips_test_begin_test("div");
-  if (div_error == mips_Success){
-    mips_test_end_test(div_zero, 1, "Checking that no exception is thrown "
-      "when dividing by 0");
-  } else {
-    mips_test_end_test(div_zero, 0, "Checking that no exception is thrown "
-      "when dividing by 0");
-  }
-
   test basic_add("add",
     "Verify the result of an add where there is no overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 32).data);
@@ -338,41 +321,21 @@ int main(){
 
   writeReg(testCPU, 8, 0xFAFAFAFA);
   test add_overflow_pos("add", "Check that dest register doesn't change if "
-    "positive overflow occurs in add", 1);
+    "positive overflow occurs in add", 1, mips_ExceptionArithmeticOverflow);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 32).data);
   writeReg(testCPU, 9, 0x7A8B8BB1);
   writeReg(testCPU, 10, 0x71649BCD);
   add_overflow_pos.checkReg(8, 0xFAFAFAFA);
-
-  mips_error overflowErrorAddPos =
-    add_overflow_pos.perform_test(testCPU, testMem);
-  int overflowTestAddPos =  mips_test_begin_test("add");
-  if (overflowErrorAddPos == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestAddPos, 1, "Check for Overflow Exception on "
-    " adding +ve");
-  } else {
-    mips_test_end_test(overflowTestAddPos, 0, "Check for Overflow Exception on "
-    " adding +ve");
-  }
+  add_overflow_pos.perform_test(testCPU, testMem);
 
   writeReg(testCPU, 8, 0xFAFAFAFA);
   test add_overflow_neg("add", "Check that dest register doesn't change if "
-    "negative overflow occurs in add", 1);
+    "negative overflow occurs in add", 1, mips_ExceptionArithmeticOverflow);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 32).data);
   writeReg(testCPU, 9, 0x80ABAF14);
   writeReg(testCPU, 10, 0xF1649BCD);
   add_overflow_neg.checkReg(8, 0xFAFAFAFA);
-
-  mips_error overflowErrorAddNeg =
-    add_overflow_neg.perform_test(testCPU, testMem);
-  int overflowTestAddNeg =  mips_test_begin_test("add");
-  if (overflowErrorAddNeg == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestAddNeg, 1, "Check for Overflow Exception on "
-    " adding -ve");
-  } else {
-    mips_test_end_test(overflowTestAddNeg, 0, "Check for Overflow Exception on "
-    " adding -ve");
-  }
+  add_overflow_neg.perform_test(testCPU, testMem);
 
   test basic_addu("addu", "Verify the result of addu with no overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 33).data);
@@ -387,17 +350,7 @@ int main(){
   writeReg(testCPU, 9, 0xF374BAB3);
   writeReg(testCPU, 10, 0x3A947118);
   addu_overflow.checkReg(8, 0x2E092BCB);
-
-  mips_error overflowErrorAddu = addu_overflow.perform_test(testCPU, testMem);
-  int overflowTestAddu = mips_test_begin_test("addu");
-  if (overflowErrorAddu == mips_Success){
-    // Addu working correctly, doesn't return overflow (or any other) error
-    mips_test_end_test(overflowTestAddu, 1, "Check addu overflowing doesn't "
-      "produce exception");
-  } else {
-    mips_test_end_test(overflowTestAddu, 0, "Check addu overflowing doesn't "
-      "produce exception");
-  }
+  addu_overflow.perform_test(testCPU, testMem);
 
   test basic_sub("sub",
     "Verify the result of a sub where there is no overflow", 1);
@@ -407,43 +360,23 @@ int main(){
   basic_sub.checkReg(8, 0xB0E19CE);
   basic_sub.perform_test(testCPU, testMem);
 
-  writeReg(testCPU, 8, 0xFAFAFAFA);
   test sub_overflow_pos("sub", "Check that dest register doesn't change if "
-    "positive overflow occurs in sub", 1);
+    "positive overflow occurs in sub", 1, mips_ExceptionArithmeticOverflow);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 34).data);
+  writeReg(testCPU, 8, 0xFAFAFAFA);
   writeReg(testCPU, 9, 0x7A8B8BB1);
   writeReg(testCPU, 10, 0x81649BCD);
   sub_overflow_pos.checkReg(8, 0xFAFAFAFA);
+  sub_overflow_pos.perform_test(testCPU, testMem);
 
-  mips_error overflowErrorSubPos =
-    sub_overflow_pos.perform_test(testCPU, testMem);
-  int overflowTestSubPos =  mips_test_begin_test("sub");
-  if (overflowErrorSubPos == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestSubPos, 1, "Check for Overflow Exception on "
-      "subing +ve");
-  } else {
-    mips_test_end_test(overflowTestSubPos, 0, "Check for Overflow Exception on "
-      "subing +ve");
-  }
-
-  writeReg(testCPU, 8, 0xFAFAFAFA);
   test sub_overflow_neg("sub", "Check that dest register doesn't change if "
-    "negative overflow occurs in sub", 1);
+    "negative overflow occurs in sub", 1, mips_ExceptionArithmeticOverflow);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 34).data);
+  writeReg(testCPU, 8, 0xFAFAFAFA);
   writeReg(testCPU, 9, 0x80ABAF14);
   writeReg(testCPU, 10, 0x71649BCD);
   sub_overflow_neg.checkReg(8, 0xFAFAFAFA);
-
-  mips_error overflowErrorSubNeg =
-    sub_overflow_neg.perform_test(testCPU, testMem);
-  int overflowTestSubNeg =  mips_test_begin_test("sub");
-  if (overflowErrorSubNeg == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestSubNeg, 1, "Check for Overflow Exception on "
-      "subing -ve");
-  } else {
-    mips_test_end_test(overflowTestSubNeg, 0, "Check for Overflow Exception on "
-      "subing -ve");
-  }
+  sub_overflow_neg.perform_test(testCPU, testMem);
 
   test basic_subu("subu", "Verify the result of subu with no overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 35).data);
@@ -458,17 +391,7 @@ int main(){
   writeReg(testCPU, 9, 0x7374BAB3);
   writeReg(testCPU, 10, 0xF14A8BC1);
   subu_overflow.checkReg(8, 0x822A2EF2);
-
-  mips_error overflowErrorSubu = subu_overflow.perform_test(testCPU, testMem);
-  int overflowTestSubu = mips_test_begin_test("subu");
-  if (overflowErrorSubu == mips_Success){
-    // Subu working correctly, doesn't return overflow (or any other) error
-    mips_test_end_test(overflowTestSubu, 1, "Check subu overflowing doesn't "
-      "produce exception");
-  } else {
-    mips_test_end_test(overflowTestSubu, 0, "Check subu overflowing doesn't "
-      "produce exception");
-  }
+  subu_overflow.perform_test(testCPU, testMem);
 
   test and_basic("and", "Verify the result of R8 = R9 & R10", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 36).data);
@@ -479,33 +402,38 @@ int main(){
 
   test or_basic("or", "Verify the result of R8 = R9 | R10", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 37).data);
+  writeReg(testCPU, 9, 0x1337C3D0);
+  writeReg(testCPU, 10, 0xBB81A1AC);
   or_basic.checkReg(8, 0xBBB7E3FC);
   or_basic.perform_test(testCPU, testMem);
 
   test xor_basic("xor", "Verify the result of R8 = R9 ^ R10", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 38).data);
+  writeReg(testCPU, 9, 0x1337C3D0);
+  writeReg(testCPU, 10, 0xBB81A1AC);
   xor_basic.checkReg(8, 0xA8B6627C);
   xor_basic.perform_test(testCPU, testMem);
 
   test slt_basic_unset("slt",
     "Check that R8 isn't set since R9 > R10 (signed)", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 42).data);
+  writeReg(testCPU, 8, 0x1234ABCD);
   writeReg(testCPU, 9, 0x03456789);
   writeReg(testCPU, 10, 0xF4F4BEEE);
-  writeReg(testCPU, 8, 0x1234ABCD);
   slt_basic_unset.checkReg(8, 0);
   slt_basic_unset.perform_test(testCPU, testMem);
 
   test sltu_basic("sltu", "Check that R8 is set since R9 < R10 (unsigned)", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 43).data);
   writeReg(testCPU, 8, 0x1234ABCD);
+  writeReg(testCPU, 9, 0x03456789);
+  writeReg(testCPU, 10, 0xF4F4BEEE);
   sltu_basic.checkReg(8, 1);
   sltu_basic.perform_test(testCPU, testMem);
 
-  writeReg(testCPU, 8, 0xBBBBBBBB);
-
   test slt_basic_set("slt", "Check that R8 is set since R9 < R10 (signed)", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_r(9, 10, 8, 0, 42).data);
+  writeReg(testCPU, 8, 0xBBBBBBBB);
   writeReg(testCPU, 9, 0x08008501);
   writeReg(testCPU, 10, 0x0F00F13D);
   slt_basic_set.checkReg(8, 1);
@@ -517,11 +445,25 @@ int main(){
   writeMem(testMem, get_pc(testCPU) + 4,
     instruction_impl_r(9, 0, 8, 0, 32).data);
   writeReg(testCPU, 9, 0xAB);
-  // Top 4 bits of new program counter have to be 0, since we have less than
-  // 256MB of memory
   j_basic.checkReg(255, 396);
   j_basic.checkReg(8, 0xAB);
   j_basic.perform_test(testCPU, testMem);
+
+  test j_aligned("j", "Check that the upper 4 bits of the pc remain unchanged",
+    2);
+  writeReg(testCPU, 255, 0x1ABCDEF4);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_j(2, 99).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  j_aligned.checkReg(255, 0x1000018C);
+  j_aligned.perform_test(testCPU, testMem);
+
+  test j_alignedWithBranch("j", "Check that the new PC is aligned with the "
+    "instruction in the branch delay slot", 2);
+  writeReg(testCPU, 255, 0x0FFFFFFC);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_j(2, 99).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  j_alignedWithBranch.checkReg(255, 0x1000018C);
+  j_alignedWithBranch.perform_test(testCPU, testMem);
 
   test jal_basic("jal", "Check that pc and link register have correct values "
     "after branch delay slot and the instruction in the branch delay slot is "
@@ -530,12 +472,26 @@ int main(){
   writeMem(testMem, get_pc(testCPU) + 4,
     instruction_impl_r(9, 0, 8, 0, 32).data);
   writeReg(testCPU, 9, 0xAB);
-  // Top 4 bits of new program counter have to be 0, since we have less than
-  // 256MB of memory
   jal_basic.checkReg(255, 436);
   jal_basic.checkReg(8, 0xAB);
   jal_basic.checkReg(31, get_pc(testCPU) + 8);
   jal_basic.perform_test(testCPU, testMem);
+
+  test jal_aligned("jal", "Check that the upper 4 bits of the pc remain "
+    "unchanged", 2);
+  writeReg(testCPU, 255, 0x1ABCDEF4);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_j(3, 99).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  j_aligned.checkReg(255, 0x1000018C);
+  j_aligned.perform_test(testCPU, testMem);
+
+  test jal_alignedWithBranch("j", "Check that the new PC is aligned with the "
+    "instruction in the branch delay slot", 2);
+  writeReg(testCPU, 255, 0x0FFFFFFC);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_j(3, 99).data);
+  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  jal_alignedWithBranch.checkReg(255, 0x1000018C);
+  jal_alignedWithBranch.perform_test(testCPU, testMem);
 
   test bltz_basic_no("bltz", "Check that branch isn't taken if source register "
     "is equal to 0. Also check that source isn't changed", 2);
@@ -790,39 +746,19 @@ int main(){
 
   writeReg(testCPU, 8, 0xFAFAFAFA);
   test addi_overflow_pos("addi", "Check that dest register doesn't change if "
-    "positive overflow occurs in addi", 1);
+    "positive overflow occurs in addi", 1, mips_ExceptionArithmeticOverflow);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(8, 9, 8, 0x734D).data);
   writeReg(testCPU, 9, 0x7FFFFBCD);
   addi_overflow_pos.checkReg(8, 0xFAFAFAFA);
-
-  mips_error overflowErrorAddiPos =
-    addi_overflow_pos.perform_test(testCPU, testMem);
-  int overflowTestAddiPos =  mips_test_begin_test("addi");
-  if (overflowErrorAddiPos == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestAddiPos, 1, "Check for Overflow Exception "
-      "on adding +ve");
-  } else {
-    mips_test_end_test(overflowTestAddiPos, 0, "Check for Overflow Exception "
-      "on adding +ve");
-  }
+  addi_overflow_pos.perform_test(testCPU, testMem);
 
   writeReg(testCPU, 8, 0xFAFAFAFA);
   test addi_overflow_neg("addi", "Check that dest register doesn't change if "
-    "negative overflow occurs in addi", 1);
+    "negative overflow occurs in addi", 1, mips_ExceptionArithmeticOverflow);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(8, 9, 8, 0x8003).data);
   writeReg(testCPU, 9, 0x80000014);
   addi_overflow_neg.checkReg(8, 0xFAFAFAFA);
-
-  mips_error overflowErrorAddiNeg =
-    addi_overflow_neg.perform_test(testCPU, testMem);
-  int overflowTestAddiNeg =  mips_test_begin_test("addi");
-  if (overflowErrorAddiNeg == mips_ExceptionArithmeticOverflow){
-    mips_test_end_test(overflowTestAddiNeg, 1, "Check for Overflow Exception "
-      "on adding -ve");
-  } else {
-    mips_test_end_test(overflowTestAddiNeg, 0, "Check for Overflow Exception "
-      "on adding -ve");
-  }
+  addi_overflow_neg.perform_test(testCPU, testMem);
 
   test basic_addiu("addiu", "Verify the result of addiu with no overflow", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0x1437).data);
@@ -835,17 +771,7 @@ int main(){
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(9, 9, 8, 0xABCD).data);
   writeReg(testCPU, 9, 0xFFFFFAB3);
   addiu_overflow.checkReg(8, 0xFFFFA680);
-
-  mips_error overflowErrorAddiu = addiu_overflow.perform_test(testCPU, testMem);
-  int overflowTestAddiu = mips_test_begin_test("addiu");
-  if (overflowErrorAddiu == mips_Success){
-    // Addu working correctly, doesn't return overflow (or any other) error
-    mips_test_end_test(overflowTestAddiu, 1, "Check addiu overflowing doesn't "
-      "produce exception");
-  } else {
-    mips_test_end_test(overflowTestAddiu, 0, "Check addiu overflowing doesn't "
-      "produce exception");
-  }
+  addiu_overflow.perform_test(testCPU, testMem);
 
   test slti_yesNeg("slti", "Verify that R8 is 1 when R9 is less than the "
     "negative immediate", 1);
@@ -955,11 +881,6 @@ int main(){
   basic_lui.checkReg(8, 0xB1530000);
   basic_lui.perform_test(testCPU, testMem);
 
-  // Reset the program counter for the next test to ensure it isn't the same
-  // as the memory address used in the test...
-  // (Maybe data and instructions should be separated...)
-  mips_cpu_set_pc(testCPU, 0);
-
   test basic_lb("lb", "Verify that the byte from the effective address is "
     "stored in R8", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(32, 9, 8, 0xFFF2).data);
@@ -1008,38 +929,30 @@ int main(){
   lh_posOffset.checkReg(8, 0x00007BBC);
   lh_posOffset.perform_test(testCPU, testMem);
 
-  int lh_unaligned = mips_test_begin_test("lh");
+  test lh_unalignedReg("lh", "Verify that the destination register isn't "
+    "changed after an Invalid Alignment Exception", 1,
+    mips_ExceptionInvalidAlignment);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(33, 9, 8, 11).data);
   writeReg(testCPU, 9, 520);
   writeReg(testCPU, 8, 0xA4C3B177);
-  mips_error lh_unalignedError = mips_cpu_step(testCPU);
-  if (lh_unalignedError == mips_ExceptionInvalidAlignment){
-    mips_test_end_test(lh_unaligned, 1, "Check that an unaligned half-word "
-      "produces an Invalid Address Exception");
-  } else {
-    mips_test_end_test(lh_unaligned, 0, "Check that an unaligned half-word "
-      "produces an Invalid Address Exception");
-  }
-
-  test lh_unalignedReg("lh", "Verify that the destination register isn't "
-    "changed after an Invalid Address Exception", 0);
   lh_unalignedReg.checkReg(8, 0xA4C3B177);
   lh_unalignedReg.perform_test(testCPU, testMem);
-
-  writeReg(testCPU, 9, 600);
-  writeMem(testMem, 600, 0xF13BA4A4);
 
   test basic_lwl1("lwl", "Verify that the most significant byte of the "
     "unaligned word replaces the most significant byte of R8", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(34, 9, 8, 3).data);
+  writeMem(testMem, 600, 0xF13BA4A4);
   writeReg(testCPU, 8, 0x17462538);
+  writeReg(testCPU, 9, 600);
   basic_lwl1.checkReg(8, 0xA4462538);
   basic_lwl1.perform_test(testCPU, testMem);
 
   test basic_lwl2("lwl", "Verify that the 2 most significant bytes of the "
     "unaligned word replaces the 2 most significant bytes of R8", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(34, 9, 8, 2).data);
+  writeMem(testMem, 600, 0xF13BA4A4);
   writeReg(testCPU, 8, 0x17462538);
+  writeReg(testCPU, 9, 600);
   basic_lwl2.checkReg(8, 0xA4A42538);
   basic_lwl2.perform_test(testCPU, testMem);
 
@@ -1051,17 +964,11 @@ int main(){
   basic_lw.checkReg(8, 0xBADBADBA);
   basic_lw.perform_test(testCPU, testMem);
 
-  int lw_unaligned = mips_test_begin_test("lw");
+  test lw_unaligned("lw", "Verify an Invalid Aligment error occurs for lw", 1,
+    mips_ExceptionInvalidAlignment);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(35, 9, 8, 0).data);
   writeReg(testCPU, 9, 474);
-  mips_error lw_unalignedError = mips_cpu_step(testCPU);
-  if (lw_unalignedError == mips_ExceptionInvalidAlignment){
-    mips_test_end_test(lw_unaligned, 1, "Check that an unaligned word produces "
-      "an Invalid Address Exception");
-  } else {
-    mips_test_end_test(lw_unaligned, 0, "Check that an unaligned word produces "
-      "an Invalid Address Exception");
-  }
+  lw_unaligned.perform_test(testCPU, testMem);
 
   test basic_lbu("lbu", "Verify that the byte is not sign extended when loaded "
     "into R8", 1);
@@ -1079,31 +986,27 @@ int main(){
   basic_lhu.checkReg(8, 0x00000118);
   basic_lhu.perform_test(testCPU, testMem);
 
-  int lhu_unaligned = mips_test_begin_test("lhu");
+  test lhu_unaligned("lhu", "Verify an Invalid Alignment error occurs for lhu",
+    1, mips_ExceptionInvalidAlignment);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(37, 9, 8, 3).data);
   writeReg(testCPU, 9, 574);
-  mips_error lhu_unalignedError = mips_cpu_step(testCPU);
-  if (lhu_unalignedError == mips_ExceptionInvalidAlignment){
-    mips_test_end_test(lhu_unaligned, 1, "Check that an unaligned half-word "
-      "produces an Invalid Address Exception");
-  } else {
-    mips_test_end_test(lhu_unaligned, 0, "Check that an unaligned half-word "
-      "produces an Invalid Address Exception");
-  }
-
-  writeReg(testCPU, 8, 0x075936AB);
-  writeReg(testCPU, 9, 564);
-  writeMem(testMem, 564, 0x73B04E1C);
+  lhu_unaligned.perform_test(testCPU, testMem);
 
   test basic_lwr1("lwr", "Verify that the least significant byte of an "
     "unaligned word replaces the least significant byte in R8", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(38, 9, 8, 0).data);
+  writeMem(testMem, 564, 0x73B04E1C);
+  writeReg(testCPU, 8, 0x075936AB);
+  writeReg(testCPU, 9, 564);
   basic_lwr1.checkReg(8, 0x07593673);
   basic_lwr1.perform_test(testCPU, testMem);
 
   test basic_lwr2("lwr", "Verify that the 3 least significant bytes of an "
     "unaligned word replace the 3 least significant bytes in R8", 1);
   writeMem(testMem, get_pc(testCPU), instruction_impl_i(38, 9, 8, 2).data);
+  writeMem(testMem, 564, 0x73B04E1C);
+  writeReg(testCPU, 8, 0x075936AB);
+  writeReg(testCPU, 9, 564);
   basic_lwr2.checkReg(8, 0x0773B04E);
   basic_lwr2.perform_test(testCPU, testMem);
 
@@ -1156,10 +1059,10 @@ int main(){
   basic_sw.checkMem(552, 0x01590624);
   basic_sw.perform_test(testCPU, testMem);
 
-  // This test acts as a
+  // This test ensures that instructions don't just work independantly
   // Expected number of steps is 5496 for 12th fibonacci number
   test fib("<internal>", "Check that the CPU can calculate the 12th fibonacci "
-    "number using the below program", 5496);
+    "number using various instructions", 5496);
   writeMem(testMem, 0x0,	0x27bdffe0); 	//addiu	sp,sp,-32
   writeMem(testMem, 0x4, 0x2c820002); 	//sltiu	v0,a0,2
   writeMem(testMem, 0x8, 0xafb20018); 	//sw	s2,24(sp);
@@ -1186,7 +1089,6 @@ int main(){
   writeMem(testMem, 0x5c, 0x27bd0020); 	//addiu	sp,sp,32
   writeMem(testMem, 0x60, 0x08000011); 	//j	44 <f_fibonacci+0x44>
   writeMem(testMem, 0x64, 0x00008821); 	//move	s1,zero
-  mips_cpu_reset(testCPU);
   writeReg(testCPU, 31, 0x10000000);
   writeReg(testCPU, 4, 12); // 12th fibonacci number
   writeReg(testCPU, 29, 0x1000); // stack pointer
@@ -1214,9 +1116,6 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
   mips_error lastError = mips_Success;
 
   int testID = mips_test_begin_test(testName);
-
-  // Assume the test passes
-  success = 1;
 
   // Make the CPU perform the required number of instructions for the test
   for(unsigned i = 0; i < numInstructions; i++){
@@ -1259,6 +1158,12 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
 
   }
 
+  if (expectedError != lastError){
+    fprintf(stderr, "[Test %d] Returned error 0x%X - Expected error 0x%X\n",
+      testID, lastError, expectedError);
+    success = 0;
+  }
+
   if (success == 0){
     // Test has failed
     fprintf(stderr, "[Test %d] FAILED\n", testID);
@@ -1267,6 +1172,9 @@ mips_error test::perform_test(mips_cpu_h state, mips_mem_h mem){
   }
 
   mips_test_end_test(testID, success, testDescription);
+
+  // Reset the state of the CPU after each test to ensure independance
+  mips_cpu_reset(state);
 
   return lastError;
 }

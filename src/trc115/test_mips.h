@@ -30,6 +30,7 @@ struct test{
   vector<memory_state> memCheck;
   vector<register_state> regCheck;
   int success;
+  mips_error expectedError;
 
   // Constructor for test
   test(
@@ -39,8 +40,22 @@ struct test{
     testName(testNameIn),
     testDescription(testDescriptionIn),
     numInstructions(numInstructionsIn),
-    // -1 indicates test has not run, 0 is failure and 1 is pass
-    success(-1){}
+    // Assume the test passes
+    success(1),
+    expectedError(mips_Success){}
+
+  // Constructor for test where the expected error isn't mips_Success
+  test(
+    const char* testNameIn,
+    const char* testDescriptionIn,
+    unsigned numInstructionsIn,
+    mips_error expectedErrorIn):
+    testName(testNameIn),
+    testDescription(testDescriptionIn),
+    numInstructions(numInstructionsIn),
+    // Assume the test passes
+    success(1),
+    expectedError(expectedErrorIn){}
 
   mips_error perform_test(mips_cpu_h state, mips_mem_h mem);
 

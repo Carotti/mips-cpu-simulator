@@ -192,11 +192,15 @@ mips_error mips_cpu_step(mips_cpu_h state){
       break;
   }
 
+  // It might seem strange to do it like this, but this is because all the J
+  // instructions are relative to the address of the instruction in the delay
+  // slot and this way prevents us requiring a pcNewNew variable as well
   if (exception != mips_Success){
     // An exception has occured, don't advance pc
     state->pc = oldpc;
     state->pcNew = oldpcNew;
   }
+
   return exception;
 }
 
