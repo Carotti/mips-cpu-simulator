@@ -453,7 +453,8 @@ int main(){
     2);
   writeReg(testCPU, 255, 0x1ABCDEF4);
   writeMem(testMem, get_pc(testCPU), instruction_impl_j(2, 99).data);
-  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 4,
+    instruction_impl_r(0, 0, 0, 0, 0).data);
   j_aligned.checkReg(255, 0x1000018C);
   j_aligned.perform_test(testCPU, testMem);
 
@@ -461,7 +462,8 @@ int main(){
     "instruction in the branch delay slot", 2);
   writeReg(testCPU, 255, 0x0FFFFFFC);
   writeMem(testMem, get_pc(testCPU), instruction_impl_j(2, 99).data);
-  writeMem(testMem, get_pc(testCPU) + 4, instruction_impl_r(0, 0, 0, 0, 0).data);
+  writeMem(testMem, get_pc(testCPU) + 4,
+    instruction_impl_r(0, 0, 0, 0, 0).data);
   j_alignedWithBranch.checkReg(255, 0x1000018C);
   j_alignedWithBranch.perform_test(testCPU, testMem);
 
@@ -1063,32 +1065,32 @@ int main(){
   // Expected number of steps is 5496 for 12th fibonacci number
   test fib("<internal>", "Check that the CPU can calculate the 12th fibonacci "
     "number using various instructions", 5496);
-  writeMem(testMem, 0x0,	0x27bdffe0); 	//addiu	sp,sp,-32
-  writeMem(testMem, 0x4, 0x2c820002); 	//sltiu	v0,a0,2
-  writeMem(testMem, 0x8, 0xafb20018); 	//sw	s2,24(sp);
-  writeMem(testMem, 0xc, 0xafbf001c); 	//sw	ra,28(sp);
-  writeMem(testMem, 0x10, 0xafb10014); 	//sw	s1,20(sp);
-  writeMem(testMem, 0x14, 0xafb00010); 	//sw	s0,16(sp);
-  writeMem(testMem, 0x18, 0x14400011); 	//bnez	v0,60 <f_fibonacci+0x60>
-  writeMem(testMem, 0x1c, 0x00809021); 	//move	s2,a0
-  writeMem(testMem, 0x20, 0x00808021); 	//move	s0,a0
-  writeMem(testMem, 0x24, 0x00008821); 	//move	s1,zero
-  writeMem(testMem, 0x28, 0x2604ffff); 	//addiu	a0,s0,-1
-  writeMem(testMem, 0x2c, 0x0c000000); 	//jal	0 <f_fibonacci>
-  writeMem(testMem, 0x30, 0x2610fffe); 	//addiu	s0,s0,-2
-  writeMem(testMem, 0x34, 0x2e030002); 	//sltiu	v1,s0,2
-  writeMem(testMem, 0x38, 0x1060fffb); 	//beqz	v1,28 <f_fibonacci+0x28>
-  writeMem(testMem, 0x3c, 0x02228821); 	//addu	s1,s1,v0
-  writeMem(testMem, 0x40, 0x32520001); 	//andi	s2,s2,0x1
-  writeMem(testMem, 0x44, 0x8fbf001c); 	//lw	ra,28(sp);
-  writeMem(testMem, 0x48, 0x02321021); 	//addu	v0,s1,s2
-  writeMem(testMem, 0x4c, 0x8fb00010); 	//lw	s0,16(sp);
-  writeMem(testMem, 0x50, 0x8fb20018); 	//lw	s2,24(sp);
-  writeMem(testMem, 0x54, 0x8fb10014); 	//lw	s1,20(sp);
-  writeMem(testMem, 0x58, 0x03e00008); 	//jr	ra
-  writeMem(testMem, 0x5c, 0x27bd0020); 	//addiu	sp,sp,32
-  writeMem(testMem, 0x60, 0x08000011); 	//j	44 <f_fibonacci+0x44>
-  writeMem(testMem, 0x64, 0x00008821); 	//move	s1,zero
+  writeMem(testMem, 0x0,	0x27bdffe0); 	// addiu	sp,sp,-32
+  writeMem(testMem, 0x4, 0x2c820002); 	// sltiu	v0,a0,2
+  writeMem(testMem, 0x8, 0xafb20018); 	// sw	s2,24(sp);
+  writeMem(testMem, 0xc, 0xafbf001c); 	// sw	ra,28(sp);
+  writeMem(testMem, 0x10, 0xafb10014); 	// sw	s1,20(sp);
+  writeMem(testMem, 0x14, 0xafb00010); 	// sw	s0,16(sp);
+  writeMem(testMem, 0x18, 0x14400011); 	// bnez	v0,60 <f_fibonacci+0x60>
+  writeMem(testMem, 0x1c, 0x00809021); 	// move	s2,a0
+  writeMem(testMem, 0x20, 0x00808021); 	// move	s0,a0
+  writeMem(testMem, 0x24, 0x00008821); 	// move	s1,zero
+  writeMem(testMem, 0x28, 0x2604ffff); 	// addiu	a0,s0,-1
+  writeMem(testMem, 0x2c, 0x0c000000); 	// jal	0 <f_fibonacci>
+  writeMem(testMem, 0x30, 0x2610fffe); 	// addiu	s0,s0,-2
+  writeMem(testMem, 0x34, 0x2e030002); 	// sltiu	v1,s0,2
+  writeMem(testMem, 0x38, 0x1060fffb); 	// beqz	v1,28 <f_fibonacci+0x28>
+  writeMem(testMem, 0x3c, 0x02228821); 	// addu	s1,s1,v0
+  writeMem(testMem, 0x40, 0x32520001); 	// andi	s2,s2,0x1
+  writeMem(testMem, 0x44, 0x8fbf001c); 	// lw	ra,28(sp);
+  writeMem(testMem, 0x48, 0x02321021); 	// addu	v0,s1,s2
+  writeMem(testMem, 0x4c, 0x8fb00010); 	// lw	s0,16(sp);
+  writeMem(testMem, 0x50, 0x8fb20018); 	// lw	s2,24(sp);
+  writeMem(testMem, 0x54, 0x8fb10014); 	// lw	s1,20(sp);
+  writeMem(testMem, 0x58, 0x03e00008); 	// jr	ra
+  writeMem(testMem, 0x5c, 0x27bd0020); 	// addiu	sp,sp,32
+  writeMem(testMem, 0x60, 0x08000011); 	// j	44 <f_fibonacci+0x44>
+  writeMem(testMem, 0x64, 0x00008821); 	// move	s1,zero
   writeReg(testCPU, 31, 0x10000000);
   writeReg(testCPU, 4, 12); // 12th fibonacci number
   writeReg(testCPU, 29, 0x1000); // stack pointer

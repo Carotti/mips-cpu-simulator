@@ -1,7 +1,7 @@
 .text
   # $a0 contains the number to check if prime
   main:
-    addiu $a0, $0, 513
+    addiu $a0, $0, 7
     jal prime
 end:    nop
         j end
