@@ -194,27 +194,27 @@ int main(){
   basic_mfhi.perform_test(testCPU, testMem);
 
   test basic_mtlo("mtlo", "Checks value from mflo is same as given in mtlo", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 17).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 19).data);
   writeMem(testMem, get_pc(testCPU) + 4,
-    instruction_impl_r(0, 0, 9, 0, 16).data);
+    instruction_impl_r(0, 0, 9, 0, 18).data);
   writeMem(testMem, get_pc(testCPU) + 8,
     instruction_impl_r(0, 0, 0, 0, 0).data);
   writeMem(testMem, get_pc(testCPU) + 12,
     instruction_impl_r(0, 0, 0, 0, 0).data);
-  writeReg(testCPU, 8, 0x0BABABAC);
-  basic_mtlo.checkReg(9, 0x0BABABAC);
+  writeReg(testCPU, 8, 0x0BABABAD);
+  basic_mtlo.checkReg(9, 0x0BABABAD);
   basic_mtlo.perform_test(testCPU, testMem);
 
   test basic_mflo("mflo", "Checks value from mflo is same as given in mtlo", 2);
-  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 17).data);
+  writeMem(testMem, get_pc(testCPU), instruction_impl_r(8, 0, 0, 0, 19).data);
   writeMem(testMem, get_pc(testCPU) + 4,
-    instruction_impl_r(0, 0, 9, 0, 16).data);
+    instruction_impl_r(0, 0, 9, 0, 18).data);
   writeMem(testMem, get_pc(testCPU) + 8,
     instruction_impl_r(0, 0, 0, 0, 0).data);
   writeMem(testMem, get_pc(testCPU) + 12,
     instruction_impl_r(0, 0, 0, 0, 0).data);
-  writeReg(testCPU, 8, 0x1F1C1D1A);
-  basic_mflo.checkReg(9, 0x1F1C1D1A);
+  writeReg(testCPU, 8, 0x1F1C1D1E);
+  basic_mflo.checkReg(9, 0x1F1C1D1E);
   basic_mflo.perform_test(testCPU, testMem);
 
   test basic_multu("multu", "Verify values of hi and lo after R10 * R11", 5);

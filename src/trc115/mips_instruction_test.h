@@ -1,9 +1,4 @@
-#include <vector>
-
 #include "mips.h"
-
-#include <iostream>
-#include <bitset>
 
 // Used to define the generic instruction implementation
 struct instruction_impl{

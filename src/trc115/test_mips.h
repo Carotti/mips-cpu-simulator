@@ -1,4 +1,3 @@
-#include "mips.h"
 #include "mips_instruction_test.h"
 
 #include <vector>
