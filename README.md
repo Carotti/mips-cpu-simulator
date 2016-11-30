@@ -1,4 +1,13 @@
-Architecture II 2016, Coursework
+# MIPS CPU Simulator
+
+This is my implementation of a MIPS CPU simulator, made to fulfil the criteria of the Architecture II 2016 coursework at Imperial College London.
+
+Coursework specification: https://github.com/m8pple/arch2-2016-cw
+
+## Bugs
+- Bug where LWL and LWR fail under certain circumstances
+
+Architecture II 2016, Coursework Specification
 ================================
 
 This is a living specification. Please feel free to post
@@ -16,19 +25,19 @@ There are three central aims of this coursework:
   but there is lots of interesting detail which gives
   you some insight (both into CPUs, but also into
   software and digital design).
-  
+
 - Understand the importance of having good specifications,
   in terms of functionality, APIs, and requirements. This
   is fundamental to CPU design and implementation, but is
   also true in the wider world (again) of software and
   digital design.
- 
+
 - Develop your skills in coding from scratch. There is
   not much scaffolding here, I am genuinely asking you
   to create your own CPU simulator from scratch. You
   will also hopefully learn some important lessons about
   reducing code repetition and automation.
-  
+
 Coursework Deliverables
 -----------------------
 
@@ -51,9 +60,9 @@ files that you have contributed. The two key things you will
 be adding are:
 
  - `src/[your_login]/mips_cpu.cpp`
- 
+
  - `src/[your_login]/test_mips.cpp`
- 
+
 The first part is the implementation of a mips simulator, and
 is essentially a library that implements the api found in [`include/mips_cpu.h`](include/mips_cpu.h).
 If you want to split into multiple files, then feel free to do
@@ -105,7 +114,7 @@ The directory structure should look like:
     +-src
     | |
     | +-shared   # This is shared with everyone. Don't put things here.
-    | | | 
+    | | |
     | | +-mips_mem_ram.cpp
     | | +-mips_test_framework.cpp
     | |
@@ -167,7 +176,7 @@ is weighted as follows:
   the result checked. You can still get a decent mark here
   even if you have a small number of instructions implemented,
   as long as they are tested well.
-  
+
 - (at most 10%) Bug reports: This specification will not be perfect, and
   I welcome bug reports. Things like spelling mistakes are
   welcome, but not quite as valuable. What is important
@@ -177,7 +186,7 @@ is weighted as follows:
   bug reports with suggested fixes. Note that "I don't know
   what to do" or "my program crashes" or "this is too hard" are
   not bugs, they need to be errors in the specification.
-  
+
 Except for the marks for compilation (where everyone
 should really get full marks, but is down to me assessing
 how much manual work I needed to put in) and bug reports
@@ -337,7 +346,7 @@ the instruction).
 There are many instructions, but there is a lot of commonality
 between some instructions. Think about the underlying
 digital data-path in a real processor, and use that to identify
-where there are similarities. 
+where there are similarities.
 
 You may get to the point where things start getting very boring,
 and you seem to be doing the same thing over and over, possibly
@@ -352,7 +361,7 @@ give you the confidence to do that.
 As you move through the instructions you should find that
 you have to think carefully about the first instruction of each type,
 deciding how to implement and test it. The next of the same
-type should be much quicker, then the next almost mechanical, 
+type should be much quicker, then the next almost mechanical,
 and you'll probably find two-thirds of the instructions are
 done in a minute each. However, you should still expect this to
 take a substantial amount of time, particularly if you plan to do
@@ -415,7 +424,7 @@ You can get the source code either by:
 
 1. Downloading the zip file (see the link on the right hand side),
    which gives you a snapshot of the files in the repository.
- 
+
 2. Cloning the source code to your local directory, keeping the
    git information intact. You don't need a github account to do
    this, and your repository will be private.
@@ -433,9 +442,9 @@ There are a number of GUI tools available which make things easier:
 
  - The github GUI is available for [Windows](https://windows.github.com/),
     [Mac](https://mac.github.com/).
-    
+
  - There are third party GUI tools like [TortoiseGIT](https://code.google.com/p/tortoisegit/)
- 
+
  - There is a default GUI called [git gui](https://www.kernel.org/pub/software/scm/git/docs/git-gui.html)
    from the main git people, that should be cross platform.
 
@@ -502,13 +511,13 @@ to diff them against this years submissions.
 > expected or not. My instinct would be to have a header file with a
 > C++ function for each MIPS instruction defining the operations of
 > the instruction, then in test_mips I would test those functions by
-> calling them with various values to check they work properly. 
-> 
+> calling them with various values to check they work properly.
+>
 > However, from reading the comments you left in the test_mips file
 > you included, it seems like you want us to define the functionality
 > of the different MIPS instructions in this file, which doesn't make
 > it a test script to me.
-> 
+>
 > Can you help clear up my confusion please?
 
 The suggested approach, of decomposing the functionality into
@@ -574,10 +583,10 @@ I've put other examples in the documentation for mips_mem_write.
 
 ### How do I implement mips_mem_provider?
 
-> How to define mips_mem_provider? I think that I need to set up an 
-> array of 8 bit integers, and have a mips_cpu_h pointing to my CPU in 
-> operation. My problem is that I am unsure how to choose an appropriate 
-> initial size for the array given that the create_ram function decides 
+> How to define mips_mem_provider? I think that I need to set up an
+> array of 8 bit integers, and have a mips_cpu_h pointing to my CPU in
+> operation. My problem is that I am unsure how to choose an appropriate
+> initial size for the array given that the create_ram function decides
 > how large the array will be. Would I need to include the block size?
 
 An implementation of mips_mem_provider is defined for you in the
@@ -592,9 +601,9 @@ during those tests.
 
 ### What is the block size?
 
-> What is the purpose of block size? As far as I can workout from the 
-> comments in the code the block size is the smallest transfer one is able 
-> to make, why does the limitation exist and is there a reason we should 
+> What is the purpose of block size? As far as I can workout from the
+> comments in the code the block size is the smallest transfer one is able
+> to make, why does the limitation exist and is there a reason we should
 > pick a certain size?
 
 The block size is equivalent to the number of bits in the address bus.
@@ -603,10 +612,10 @@ this better.
 
 ### What exactly goes on inside mips_cpu_step?
 
-> mips_error mips_cpu_step(mips_cpu_h state). Inside this function are 
-> we looking to extract 32-bits from memory at a time, determine whether 
-> it is an RIJ type, then pass on the appropriate segments of the 32 bit 
-> words to a function that completes the operation, then continue 
+> mips_error mips_cpu_step(mips_cpu_h state). Inside this function are
+> we looking to extract 32-bits from memory at a time, determine whether
+> it is an RIJ type, then pass on the appropriate segments of the 32 bit
+> words to a function that completes the operation, then continue
 > repeating the process until there is no longer anything left in memory?
 
 Yes, for everything up to "continue repeating the process".
@@ -626,7 +635,7 @@ better idea why it might be useful.
 
 > Why is the mips_cpu_get_pc function necessary, can't you
 > just get the value of the pc by doing state->pc, as you
-> did in the skeleton file? 
+> did in the skeleton file?
 
 You control the internals of the cpu state,
 so on the `mips_cpu.cpp` side, you can totally
