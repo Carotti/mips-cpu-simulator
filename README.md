@@ -1,6 +1,6 @@
 # MIPS CPU Simulator
 
-This is my implementation of a MIPS CPU simulator, made to fulfil the criteria of the Architecture II 2016 coursework at Imperial College London.
+This is my implementation of a MIPS CPU simulator, made to fulfil the criteria of the Architecture II 2016 coursework at Imperial College London. It also contains a testbench for testing the CPU, as well as the APIs for implementing and testing it which were provided.
 
 Coursework specification: https://github.com/m8pple/arch2-2016-cw
 
